@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <style>
   :root {
     --bg: #0a0a0b;
@@ -1450,6 +1451,98 @@
     backdrop-filter: blur(4px);
   }
 
+  /* ── 3D Model Upload ── */
+  .model-upload-zone {
+    border: 1px dashed var(--border);
+    border-radius: 4px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(255,255,255,0.02);
+  }
+  .model-no-file {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+  }
+  .model-has-file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+  .model-file-icon {
+    color: var(--accent);
+    font-size: 14px;
+  }
+  .model-file-name {
+    color: var(--text);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .btn-remove-model {
+    background: transparent;
+    border: 1px solid #c0392b;
+    color: #c0392b;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    padding: 4px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+  }
+  .btn-remove-model:hover { background: #c0392b; color: #fff; }
+  .btn-upload-model-label {
+    display: inline-block;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 8px 16px;
+    border-radius: 2px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, color 0.15s;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .btn-upload-model-label:hover { border-color: var(--accent); color: var(--accent); }
+  .model-upload-spinner {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+  /* Default image fallback in 3D viewer */
+  .viewer-default-img {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #111113;
+    color: var(--dim);
+    gap: 16px;
+  }
+  .viewer-default-img svg { opacity: 0.25; }
+  .viewer-default-img span {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+  }
+
 </style>
 </head>
 <body>
@@ -2167,7 +2260,7 @@ function renderDetailContent(s) {
           <span class="spec-val">${s.vas}</span>
         </div>
         <div class="spec-item">
-          <span class="spec-key">Max Excursion (xmax)</span>
+          <span class="spec-key">Max Excursion (Xmax)</span>
           <span class="spec-val highlight">${s.xmax}</span>
         </div>
         <div class="spec-item">
@@ -2308,8 +2401,30 @@ function initThreeJS(s) {
   scene.add(grid);
 
   modelGroup = new THREE.Group();
-  buildSpeakerModel(modelGroup, s);
   scene.add(modelGroup);
+
+  if (s.modelUrl) {
+    const loader = new THREE.GLTFLoader();
+    loader.load(s.modelUrl, (gltf) => {
+      const loaded = gltf.scene;
+      // Normalize scale so model fits comfortably in the viewer
+      const box = new THREE.Box3().setFromObject(loaded);
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      if (maxDim > 0) {
+        const scale = 3 / maxDim;
+        loaded.scale.setScalar(scale);
+        const center = box.getCenter(new THREE.Vector3());
+        loaded.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+      }
+      modelGroup.add(loaded);
+    }, undefined, () => {
+      // Fall back to procedural model on error
+      buildSpeakerModel(modelGroup, s);
+    });
+  } else {
+    buildSpeakerModel(modelGroup, s);
+  }
 
   // Mouse interaction
   let isDragging = false;
@@ -2498,6 +2613,12 @@ function setModelView(view) {
   
   if (!modelGroup || !threeScene) return;
 
+  if (currentSpeaker && currentSpeaker.modelUrl) {
+    // Custom GLTF loaded — only rotation changes apply
+    if (view === 'side') modelGroup.rotation.y = Math.PI / 2;
+    else modelGroup.rotation.y = 0;
+    return;
+  }
   if (view === 'explode') {
     explodedMode = true;
     buildSpeakerModel(modelGroup, currentSpeaker, true);
@@ -2548,6 +2669,116 @@ async function sbFetch(path, options = {}) {
 }
 
 // ───────────────────────────────────────────
+// SUPABASE STORAGE — 3D models
+// ───────────────────────────────────────────
+const MODEL_BUCKET = 'speaker-models';
+
+async function ensureStorageBucket() {
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/bucket`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': `Bearer ${authToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id: MODEL_BUCKET, name: MODEL_BUCKET, public: true })
+  });
+  // 409 = already exists — that's fine
+  if (!res.ok && res.status !== 409) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || err.error || `Bucket error HTTP ${res.status}`);
+  }
+}
+
+async function deleteStorageFile(url) {
+  try {
+    const parts = url.split(`/${MODEL_BUCKET}/`);
+    if (parts.length < 2) return;
+    const filename = parts[1];
+    await fetch(`${SUPABASE_URL}/storage/v1/object/${MODEL_BUCKET}/${filename}`, {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+  } catch(e) {}
+}
+
+function updateModelUploadArea() {
+  const statusEl = document.getElementById('model-upload-status');
+  if (!statusEl) return;
+  if (currentModelUrl) {
+    const filename = decodeURIComponent(currentModelUrl.split('/').pop());
+    statusEl.innerHTML = `
+      <div class="model-has-file">
+        <span class="model-file-icon">◈</span>
+        <span class="model-file-name">${filename}</span>
+        <button class="btn-remove-model" onclick="deleteModel3D()">✕ Remove</button>
+      </div>`;
+  } else {
+    statusEl.innerHTML = `<div class="model-no-file">No custom model — default view will be shown</div>`;
+  }
+}
+
+async function uploadModel3D(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!authToken) { showToast('You must be logged in to upload', true); return; }
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['glb', 'gltf'].includes(ext)) { showToast('Only .glb and .gltf files are supported', true); return; }
+
+  const labelEl = document.querySelector('.btn-upload-model-label');
+  if (labelEl) labelEl.textContent = '⟳ Uploading…';
+
+  try {
+    await ensureStorageBucket();
+
+    // If we already uploaded a NEW file this session (not the original from DB), delete it
+    if (currentModelUrl && currentModelUrl !== _originalModelUrl) {
+      await deleteStorageFile(currentModelUrl);
+    }
+
+    const filename = `speaker-${Date.now()}.${ext}`;
+    const uploadRes = await fetch(`${SUPABASE_URL}/storage/v1/object/${MODEL_BUCKET}/${filename}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_ANON,
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': file.type || 'model/gltf-binary',
+        'x-upsert': 'true'
+      },
+      body: file
+    });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json().catch(() => ({}));
+      throw new Error(err.message || err.error || `HTTP ${uploadRes.status}`);
+    }
+
+    currentModelUrl = `${SUPABASE_URL}/storage/v1/object/public/${MODEL_BUCKET}/${filename}`;
+    updateModelUploadArea();
+    showToast('Model uploaded ✓');
+  } catch(err) {
+    showToast('Upload failed: ' + err.message, true);
+  } finally {
+    if (labelEl) labelEl.textContent = '↑ Upload .glb / .gltf';
+    input.value = '';
+  }
+}
+
+async function deleteModel3D() {
+  if (!currentModelUrl) return;
+  // If this is a new session upload (not the original), delete it from storage now
+  if (currentModelUrl !== _originalModelUrl) {
+    await deleteStorageFile(currentModelUrl);
+  }
+  currentModelUrl = null;
+  updateModelUploadArea();
+  showToast('Model removed ✓');
+}
+
+// ───────────────────────────────────────────
 // SPEAKERS
 // ───────────────────────────────────────────
 async function loadDB() {
@@ -2572,6 +2803,7 @@ async function insertSpeaker(entry) {
 
 async function updateSpeaker(entry) {
   const row = appToDB(entry);
+  delete row.id; // id is in the URL filter, not the payload
   const [updated] = await sbFetch(`speakers?id=eq.${entry.id}`, {
     method: 'PATCH',
     body: JSON.stringify(row)
@@ -2599,7 +2831,7 @@ function dbToApp(r) {
     fsHz:        r.fs_hz       || 0,
     qts:         r.qts         || 0,
     vas:         r.vas         || '',
-    xmax:    r.xmax        || '',
+    xmax:        r.row_xmax    || '',
     weight:      r.weight      || '',
     enclosures:  r.enclosures  || [],
     color:       r.color       || '#e8ff47',
@@ -2628,7 +2860,7 @@ function appToDB(s) {
     fs_hz:       s.fsHz,
     qts:         s.qts,
     vas:         s.vas,
-    xmax:    s.xmax,
+    row_xmax:    s.xmax,
     weight:      s.weight,
     enclosures:  s.enclosures,
     color:       s.color,
@@ -2783,7 +3015,7 @@ const BUILT_IN_FIELDS = [
   { key:'fsHz',        label:'Fs (Hz)',          section:'Thiele–Small', type:'number',   placeholder:'e.g. 32' },
   { key:'qts',         label:'Qts',             section:'Thiele–Small', type:'number',   placeholder:'e.g. 0.34' },
   { key:'vas',         label:'Vas',             section:'Thiele–Small', type:'text',     placeholder:'e.g. 18.5L' },
-  { key:'xmax',        label:'xmax',            section:'Thiele–Small', type:'text',     placeholder:'e.g. 7mm' },
+  { key:'xmax',        label:'Xmax',            section:'Thiele–Small', type:'text',     placeholder:'e.g. 7mm' },
   { key:'enclosures',  label:'Enclosure Types', section:'Identity',     type:'chips',    placeholder:'' },
   { key:'color',       label:'Accent Colour',   section:'Identity',     type:'color',    placeholder:'' },
 ];
@@ -3125,6 +3357,8 @@ const COLORS = ['#e8ff47','#ff6b35','#64b4ff','#b464ff','#ffc832','#32ffb4','#ff
 let selectedEnclosures = [];
 let selectedColor = '#e8ff47';
 let editingId = null;
+let currentModelUrl = null;
+let _originalModelUrl = null; // URL when form was opened — used for cleanup
 
 function renderCustomFieldsInForm(s, section) {
   const fields = customFields.filter(f => f.section === section);
@@ -3163,6 +3397,8 @@ function openForm(id) {
   const s = id ? speakers.find(x => x.id === id) : null;
   selectedEnclosures = s ? [...s.enclosures] : [];
   selectedColor = s ? s.color : '#e8ff47';
+  currentModelUrl = s ? (s.modelUrl || null) : null;
+  _originalModelUrl = currentModelUrl;
 
   // Helper: get effective label/placeholder for a built-in key
   const bl = (key) => {
@@ -3283,6 +3519,24 @@ function openForm(id) {
         `).join('')}
       </div>
 
+      <div class="form-section-label">// 3D Model</div>
+      <div class="model-upload-zone" id="model-upload-zone">
+        <div id="model-upload-status">
+          ${currentModelUrl
+            ? `<div class="model-has-file">
+                 <span class="model-file-icon">◈</span>
+                 <span class="model-file-name">${decodeURIComponent(currentModelUrl.split('/').pop())}</span>
+                 <button class="btn-remove-model" onclick="deleteModel3D()">✕ Remove</button>
+               </div>`
+            : `<div class="model-no-file">No custom model — default view will be shown</div>`
+          }
+        </div>
+        <label class="btn-upload-model-label">
+          <input type="file" id="model-file-input" accept=".glb,.gltf" style="display:none" onchange="uploadModel3D(this)">
+          ↑ Upload .glb / .gltf
+        </label>
+      </div>
+
       <div class="form-actions">
         <button class="btn-cancel" onclick="closeForm()">Cancel</button>
         <button class="btn-save" onclick="saveForm()">${s ? 'Save Changes' : 'Add Speaker'}</button>
@@ -3292,6 +3546,12 @@ function openForm(id) {
 }
 
 function closeForm() {
+  // Clean up any session-uploaded file that wasn't saved
+  if (currentModelUrl && currentModelUrl !== _originalModelUrl) {
+    deleteStorageFile(currentModelUrl).catch(() => {});
+  }
+  currentModelUrl = null;
+  _originalModelUrl = null;
   editingId = null;
   activeEditId = null;
   renderAdminTable();
@@ -3343,7 +3603,8 @@ async function saveForm() {
     freqRange: freq, fsHz, qts, vas, xmax, weight,
     enclosures: selectedEnclosures.length ? selectedEnclosures : ['Sealed'],
     color: selectedColor,
-    accent: selectedColor
+    accent: selectedColor,
+    modelUrl: currentModelUrl || undefined
   };
 
   // Collect custom fields
@@ -3364,6 +3625,11 @@ async function saveForm() {
       speakers.push(created);
       showToast('Speaker added ✓');
     }
+    // If model was replaced or removed, delete the old file from storage
+    if (_originalModelUrl && _originalModelUrl !== currentModelUrl) {
+      await deleteStorageFile(_originalModelUrl).catch(() => {});
+    }
+    _originalModelUrl = currentModelUrl;
     closeForm();
     renderGallery(speakers);
     updateHeroCount();
@@ -3390,6 +3656,10 @@ function closeDeleteModal() {
 async function confirmDelete() {
   if (!deleteTargetId) return;
   try {
+    const toDelete = speakers.find(s => s.id === deleteTargetId);
+    if (toDelete && toDelete.modelUrl) {
+      await deleteStorageFile(toDelete.modelUrl).catch(() => {});
+    }
     await deleteSpeaker(deleteTargetId);
     speakers = speakers.filter(s => s.id !== deleteTargetId);
     closeDeleteModal();
