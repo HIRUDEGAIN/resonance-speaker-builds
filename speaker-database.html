@@ -1,0 +1,3615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RESONANCE — Speaker Archive</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0b;
+    --surface: #111113;
+    --surface2: #1a1a1e;
+    --border: #2a2a30;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666680;
+    --dim: #3a3a48;
+    --card-hover: #16161c;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    height: 64px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,11,0.92);
+    backdrop-filter: blur(20px);
+  }
+
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .nav-logo span { color: var(--accent); }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+    cursor: pointer;
+  }
+
+  .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+
+  /* HOME PAGE */
+  #page-home { padding-top: 64px; }
+
+  .hero {
+    padding: 80px 40px 40px;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: end;
+  }
+
+  .hero-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 16px;
+  }
+
+  .hero-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(48px, 7vw, 96px);
+    font-weight: 800;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-title .line2 { color: var(--muted); }
+
+  .hero-desc {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.7;
+    max-width: 360px;
+    margin-bottom: 24px;
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: 32px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .stat-num {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--accent);
+  }
+
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* FILTERS */
+  .filters-bar {
+    padding: 24px 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 8px;
+  }
+
+  .filter-btn {
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+
+  .filter-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  .search-box {
+    margin-left: auto;
+    position: relative;
+  }
+
+  .search-box input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 16px 8px 36px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    outline: none;
+    width: 220px;
+    border-radius: 2px;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: var(--dim); }
+
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 13px;
+    pointer-events: none;
+  }
+
+  /* GALLERY GRID */
+  .gallery {
+    padding: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 2px;
+  }
+
+  .speaker-card {
+    background: var(--surface);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s;
+    border: 1px solid transparent;
+  }
+
+  .speaker-card:hover {
+    background: var(--card-hover);
+    border-color: var(--border);
+    z-index: 1;
+  }
+
+  .card-thumb {
+    width: 100%;
+    aspect-ratio: 4/5;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface2);
+  }
+
+  .card-thumb svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.6;
+    transition: all 0.3s;
+  }
+
+  .speaker-card:hover .card-thumb svg {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+
+  .card-type-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 10px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-radius: 1px;
+  }
+
+  .badge-fullrange { background: rgba(232,255,71,0.15); color: var(--accent); border: 1px solid rgba(232,255,71,0.3); }
+  .badge-subwoofer { background: rgba(255,107,53,0.15); color: var(--accent2); border: 1px solid rgba(255,107,53,0.3); }
+  .badge-tweeter { background: rgba(100,180,255,0.15); color: #64b4ff; border: 1px solid rgba(100,180,255,0.3); }
+  .badge-midrange { background: rgba(180,100,255,0.15); color: #b464ff; border: 1px solid rgba(180,100,255,0.3); }
+  .badge-coaxial { background: rgba(255,200,50,0.15); color: #ffc832; border: 1px solid rgba(255,200,50,0.3); }
+  .badge-line-array { background: rgba(50,255,180,0.15); color: #32ffb4; border: 1px solid rgba(50,255,180,0.3); }
+
+  .card-info {
+    padding: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .card-brand {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .card-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+    transition: color 0.2s;
+  }
+
+  .speaker-card:hover .card-name { color: var(--accent); }
+
+  .card-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+  }
+
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .meta-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .meta-key {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .card-arrow {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 14px;
+    transition: all 0.2s;
+  }
+
+  .speaker-card:hover .card-arrow {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+
+  /* SPEAKER DETAIL PAGE */
+  #page-detail { display: none; padding-top: 64px; }
+
+  .detail-back {
+    padding: 20px 40px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    transition: color 0.2s;
+  }
+
+  .detail-back:hover { color: var(--accent); }
+
+  .detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: calc(100vh - 64px - 57px);
+  }
+
+  .detail-visual {
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 64px;
+    height: calc(100vh - 64px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .model-viewer {
+    flex: 1;
+    background: var(--surface);
+    position: relative;
+  }
+
+  #three-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .model-controls {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .model-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .model-hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--dim);
+    margin-left: auto;
+    letter-spacing: 0.08em;
+  }
+
+  .model-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+
+  .model-btn:hover, .model-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .detail-content {
+    overflow-y: auto;
+    padding: 48px 48px 80px;
+  }
+
+  .detail-header-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+
+  .detail-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: clamp(32px, 4vw, 52px);
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .detail-tagline {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 40px;
+    max-width: 480px;
+  }
+
+  .specs-section {
+    margin-bottom: 40px;
+  }
+
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .spec-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+
+  .spec-item {
+    background: var(--surface);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .spec-key {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .spec-val {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 16px;
+  }
+
+  .spec-val.highlight { color: var(--accent); }
+
+  .freq-chart {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+    margin-bottom: 40px;
+  }
+
+  .freq-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+
+  .freq-visual {
+    height: 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .freq-visual svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .enclosure-types {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+
+  .enc-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+
+  .enc-item:hover, .enc-item.active {
+    border-color: var(--accent);
+  }
+
+  .enc-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+    flex-shrink: 0;
+  }
+
+  .enc-item.active .enc-dot { background: var(--accent); }
+
+  .enc-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .enc-desc {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .detail-gallery {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 4px;
+    margin-bottom: 40px;
+  }
+
+  .detail-gallery-img {
+    aspect-ratio: 1;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: border-color 0.2s;
+    cursor: pointer;
+  }
+
+  .detail-gallery-img:hover { border-color: var(--accent); }
+
+  .detail-gallery-img svg {
+    width: 60%;
+    height: 60%;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+  }
+
+  .detail-gallery-img:hover svg { opacity: 1; }
+
+  .no-results {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 80px 40px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+  }
+
+  .no-results span {
+    display: block;
+    font-size: 40px;
+    margin-bottom: 16px;
+    opacity: 0.3;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .speaker-card {
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .speaker-card:nth-child(1) { animation-delay: 0.02s; }
+  .speaker-card:nth-child(2) { animation-delay: 0.06s; }
+  .speaker-card:nth-child(3) { animation-delay: 0.10s; }
+  .speaker-card:nth-child(4) { animation-delay: 0.14s; }
+  .speaker-card:nth-child(5) { animation-delay: 0.18s; }
+  .speaker-card:nth-child(6) { animation-delay: 0.22s; }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .loading-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+  }
+
+  /* ═══ ADMIN PANEL ═══ */
+  #page-admin { display: none; padding-top: 64px; min-height: 100vh; }
+
+  .admin-layout {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    min-height: calc(100vh - 64px);
+    gap: 0;
+  }
+
+  .admin-list-pane {
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+
+  .admin-pane-header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+
+  .admin-pane-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .admin-pane-count {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--accent);
+  }
+
+  .btn-add {
+    padding: 10px 20px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    font-weight: 700;
+    border-radius: 2px;
+    transition: opacity 0.2s;
+  }
+  .btn-add:hover { opacity: 0.85; }
+
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .admin-table th {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 20px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 65px;
+  }
+
+  .admin-table td {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .admin-table tr:hover td { background: var(--surface); }
+
+  .admin-row-active td { background: var(--surface2) !important; }
+  .admin-row-active td:first-child { border-left: 2px solid var(--accent); }
+
+  .admin-brand {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .admin-model {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 2px;
+  }
+
+  .admin-type-pill {
+    padding: 3px 9px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    border-radius: 1px;
+    white-space: nowrap;
+  }
+
+  .admin-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  .btn-icon {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+
+  .btn-icon:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-icon.danger:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* FORM PANE */
+  .admin-form-pane {
+    overflow-y: auto;
+    background: var(--surface);
+  }
+
+  .form-pane-header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--surface);
+    z-index: 10;
+  }
+
+  .form-pane-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .form-pane-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .form-body {
+    padding: 28px 32px 48px;
+  }
+
+  .form-section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 28px 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .form-section-label:first-child { margin-top: 0; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .form-row.full { grid-template-columns: 1fr; }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-field label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .form-field input,
+  .form-field select,
+  .form-field textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    border-radius: 2px;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .form-field input:focus,
+  .form-field select:focus,
+  .form-field textarea:focus { border-color: var(--accent); }
+
+  .form-field input::placeholder,
+  .form-field textarea::placeholder { color: var(--dim); font-size: 12px; }
+
+  .form-field select option { background: var(--surface2); }
+
+  .form-field textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  .color-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .color-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 2px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    flex-shrink: 0;
+  }
+
+  .color-swatch:hover { transform: scale(1.1); }
+  .color-swatch.selected { border-color: white; }
+
+  .enclosure-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .enc-chip {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+
+  .enc-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .enc-chip.selected { background: rgba(232,255,71,0.12); border-color: var(--accent); color: var(--accent); }
+
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-save {
+    flex: 1;
+    padding: 12px 24px;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: opacity 0.2s;
+  }
+
+  .btn-save:hover { opacity: 0.85; }
+
+  .btn-cancel {
+    padding: 12px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .btn-cancel:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .form-empty {
+    padding: 80px 32px;
+    text-align: center;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    line-height: 2;
+  }
+
+  .form-empty-icon {
+    font-size: 36px;
+    display: block;
+    margin-bottom: 16px;
+    opacity: 0.2;
+  }
+
+  /* Delete confirm modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 40px;
+    max-width: 400px;
+    width: 90%;
+  }
+
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .modal-body {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 28px;
+  }
+
+  .modal-body strong { color: var(--text); }
+
+  .modal-actions { display: flex; gap: 12px; }
+
+  .btn-delete-confirm {
+    flex: 1;
+    padding: 12px;
+    background: var(--accent2);
+    color: white;
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+
+  /* Admin toolbar */
+  .admin-toolbar {
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    background: var(--surface);
+    flex-wrap: wrap;
+  }
+
+  .btn-toolbar {
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .btn-toolbar:hover { border-color: var(--accent); color: var(--accent); }
+
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 12px 24px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    border-radius: 2px;
+    z-index: 999;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+  }
+
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ═══ CUSTOM FIELDS MANAGER ═══ */
+  .admin-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 0;
+    z-index: 11;
+  }
+
+  .admin-tab {
+    padding: 14px 28px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .admin-tab:hover { color: var(--text); }
+  .admin-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .admin-tab-panel { display: none; }
+  .admin-tab-panel.active { display: block; }
+
+  /* Fields list */
+  .fields-list {
+    padding: 0;
+  }
+
+  .field-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+
+  .field-row:hover { background: var(--surface); }
+
+  .field-drag {
+    color: var(--dim);
+    font-size: 14px;
+    cursor: grab;
+    user-select: none;
+    flex-shrink: 0;
+  }
+
+  .field-info { flex: 1; min-width: 0; }
+
+  .field-name {
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+
+  .field-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .field-type-tag {
+    padding: 3px 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    border-radius: 1px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .field-built-in {
+    padding: 3px 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: var(--dim);
+    border: 1px solid var(--border);
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  .fields-add-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 24px;
+    color: var(--accent);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    background: none;
+    border: none;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    text-align: left;
+    transition: background 0.2s;
+  }
+
+  .fields-add-btn:hover { background: var(--surface); }
+
+  /* Field edit modal */
+  .field-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+
+  .field-modal-overlay.open { display: flex; }
+
+  .field-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 36px;
+    width: 480px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .field-modal-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    margin-bottom: 24px;
+  }
+
+  .options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .option-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .option-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    border-radius: 2px;
+  }
+
+  .option-row input:focus { border-color: var(--accent); }
+
+  .btn-remove-option {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+
+  .btn-remove-option:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .btn-add-option {
+    padding: 7px 14px;
+    border: 1px dashed var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 2px;
+    margin-top: 4px;
+    transition: all 0.2s;
+    width: 100%;
+  }
+
+  .btn-add-option:hover { border-color: var(--accent); color: var(--accent); }
+
+  .section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 24px 0;
+  }
+
+  .built-in-section {
+    padding: 0 24px 16px;
+  }
+
+  .built-in-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 16px 0 12px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .detail-layout { grid-template-columns: 1fr; }
+    .detail-visual { position: relative; height: 60vw; }
+    .gallery { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  }
+  /* ═══ LOGIN SCREEN ═══ */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .login-box {
+    width: 380px;
+    padding: 48px 40px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .login-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+
+  .login-logo span { color: var(--accent); }
+
+  .login-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 32px;
+  }
+
+  .login-error {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--accent2);
+    margin-top: 12px;
+    min-height: 18px;
+    letter-spacing: 0.04em;
+  }
+
+  .login-hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-align: center;
+    margin-top: 28px;
+  }
+
+  .login-guest-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .login-guest-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Loading overlay */
+  .db-loading {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,11,0.8);
+    z-index: 8000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    backdrop-filter: blur(4px);
+  }
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">RESO<span>NAN</span>CE</div>
+    <div class="login-sub">// Admin Access</div>
+    <div class="form-field" style="margin-bottom:12px">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="username">
+    </div>
+    <div class="form-field" style="margin-bottom:20px">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-save" id="login-btn" onclick="handleLogin()" style="width:100%">Sign In</button>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-hint">Public gallery is accessible without login.</div>
+    <button class="login-guest-btn" onclick="enterAsGuest()">View Archive as Guest →</button>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div id="app-shell" style="display:none">
+
+<nav>
+  <a class="nav-logo" onclick="showPage('home')" href="#">RESO<span>NAN</span>CE</a>
+  <ul class="nav-links">
+    <li><a onclick="showPage('home')" class="active" id="nav-home">Archive</a></li>
+    <li><a href="#" onclick="filterType('Subwoofer')">Subwoofers</a></li>
+    <li><a href="#" onclick="filterType('Full-Range')">Full-Range</a></li>
+    <li><a href="#" onclick="filterType('Tweeter')">Tweeters</a></li>
+    <li><a href="#" onclick="showPage('admin')" id="nav-admin" style="display:none">Admin ⚙</a></li>
+    <li id="nav-user-area" style="display:none">
+      <span id="nav-user" style="color:var(--muted);font-size:10px;font-family:'Space Mono',monospace;letter-spacing:0.08em"></span>
+    </li>
+    <li id="nav-signout-li" style="display:none">
+      <a href="#" onclick="signOut()" style="color:var(--accent2)">Sign Out</a>
+    </li>
+    <li id="nav-signin-li">
+      <a href="#" onclick="showLoginScreen()" style="color:var(--accent)">Admin Login</a>
+    </li>
+  </ul>
+</nav>
+
+<!-- HOME PAGE -->
+<div id="page-home">
+  <div class="hero">
+    <div>
+      <div class="hero-label">// Speaker Engineering Archive</div>
+      <h1 class="hero-title">
+        DRIVER<br>
+        <span class="line2">DATA</span><br>
+        BASE.
+      </h1>
+    </div>
+    <div>
+      <p class="hero-desc">A curated technical archive of loudspeaker drivers, enclosure plans, and acoustic engineering data. Explore specifications, 3D models, and construction blueprints.</p>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-num" id="count-all">12</span>
+          <span class="stat-label">Drivers</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">6</span>
+          <span class="stat-label">Types</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">8</span>
+          <span class="stat-label">Brands</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="filters-bar">
+    <span class="filter-label">Filter by type</span>
+    <button class="filter-btn active" onclick="filterType('All')">All</button>
+    <button class="filter-btn" onclick="filterType('Full-Range')">Full-Range</button>
+    <button class="filter-btn" onclick="filterType('Subwoofer')">Subwoofer</button>
+    <button class="filter-btn" onclick="filterType('Tweeter')">Tweeter</button>
+    <button class="filter-btn" onclick="filterType('Midrange')">Midrange</button>
+    <button class="filter-btn" onclick="filterType('Coaxial')">Coaxial</button>
+    <button class="filter-btn" onclick="filterType('Line Array')">Line Array</button>
+    <div class="search-box">
+      <span class="search-icon">⌕</span>
+      <input type="text" placeholder="Search model, brand..." id="search-input" oninput="applyFilters()">
+    </div>
+  </div>
+
+  <div class="gallery" id="gallery"></div>
+</div>
+
+<!-- DETAIL PAGE -->
+<div id="page-detail">
+  <div class="detail-back" onclick="showPage('home')">
+    ← Back to Archive
+  </div>
+  <div class="detail-layout">
+    <div class="detail-visual">
+      <div class="model-viewer">
+        <canvas id="three-canvas"></canvas>
+      </div>
+      <div class="model-controls">
+        <span class="model-label">3D Model</span>
+        <button class="model-btn active" onclick="setModelView('front')">Front</button>
+        <button class="model-btn" onclick="setModelView('side')">Section</button>
+        <button class="model-btn" onclick="setModelView('explode')">Exploded</button>
+        <button class="model-btn" onclick="toggleWireframe()">Wire</button>
+        <span class="model-hint">Drag to rotate · Scroll to zoom</span>
+      </div>
+    </div>
+    <div class="detail-content" id="detail-content"></div>
+  </div>
+</div>
+
+<!-- ADMIN PAGE -->
+<div id="page-admin">
+  <div class="admin-layout">
+    <!-- Left: tabbed list -->
+    <div class="admin-list-pane">
+      <div class="admin-tabs">
+        <button class="admin-tab active" onclick="switchAdminTab('speakers', this)">Speakers</button>
+        <button class="admin-tab" onclick="switchAdminTab('fields', this)">Custom Fields</button>
+      </div>
+
+      <!-- SPEAKERS TAB -->
+      <div class="admin-tab-panel active" id="tab-speakers">
+        <div class="admin-pane-header">
+          <div>
+            <div class="admin-pane-title">// Speaker Database</div>
+            <div class="admin-pane-count" id="admin-count">0</div>
+          </div>
+          <button class="btn-add" onclick="openForm(null)">+ Add Speaker</button>
+        </div>
+        <div class="admin-toolbar">
+          <button class="btn-toolbar" onclick="exportJSON()">↓ Export JSON</button>
+          <label class="btn-toolbar" style="cursor:pointer">
+            ↑ Import JSON
+            <input type="file" accept=".json" onchange="importJSON(event)" style="display:none">
+          </label>
+          <button class="btn-toolbar" onclick="resetToDefaults()">↺ Reset to Defaults</button>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Driver</th>
+              <th>Type</th>
+              <th>Size</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="admin-table-body"></tbody>
+        </table>
+      </div>
+
+      <!-- FIELDS TAB -->
+      <div class="admin-tab-panel" id="tab-fields">
+        <div class="admin-pane-header">
+          <div>
+            <div class="admin-pane-title">// Schema Editor</div>
+            <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px">Define custom spec fields</div>
+          </div>
+        </div>
+
+        <div class="built-in-section">
+          <div class="built-in-label">// Built-in Fields (read-only)</div>
+        </div>
+        <div id="built-in-fields-list"></div>
+
+        <div class="section-divider" style="margin:0"></div>
+
+        <div class="built-in-section" style="padding-top:0">
+          <div class="built-in-label">// Custom Fields</div>
+        </div>
+        <div class="fields-list" id="custom-fields-list"></div>
+        <button class="fields-add-btn" onclick="openFieldModal(null)">+ Add Custom Field</button>
+      </div>
+    </div>
+
+    <!-- Right: Form pane -->
+    <div class="admin-form-pane">
+      <div id="form-pane-content">
+        <div class="form-empty">
+          <span class="form-empty-icon">◎</span>
+          Select a speaker to edit,<br>or click <strong style="color:var(--accent)">+ Add Speaker</strong><br>to create a new entry.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="delete-modal" onclick="if(event.target===this)closeDeleteModal()">
+  <div class="modal-box">
+    <div class="modal-title">Delete Speaker?</div>
+    <div class="modal-body">This will permanently remove <strong id="delete-name"></strong> from the database. This action cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="btn-cancel" style="flex:1" onclick="closeDeleteModal()">Cancel</button>
+      <button class="btn-delete-confirm" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Field Edit Modal -->
+<div class="field-modal-overlay" id="field-modal" onclick="if(event.target===this)closeFieldModal()">
+  <div class="field-modal">
+    <div class="field-modal-title" id="field-modal-title">New Custom Field</div>
+
+    <div class="form-field" style="margin-bottom:14px">
+      <label>Field Label</label>
+      <input type="text" id="fm-label" placeholder="e.g. Voice Coil Diameter">
+    </div>
+
+    <div class="form-row" style="margin-bottom:14px">
+      <div class="form-field">
+        <label>Field Key (no spaces)</label>
+        <input type="text" id="fm-key" placeholder="e.g. voiceCoilDiam">
+      </div>
+      <div class="form-field">
+        <label>Input Type</label>
+        <select id="fm-type" onchange="onFieldTypeChange()">
+          <option value="text">Text</option>
+          <option value="number">Number</option>
+          <option value="textarea">Textarea</option>
+          <option value="select">Select (dropdown)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-field" style="margin-bottom:14px">
+      <label>Placeholder / Hint</label>
+      <input type="text" id="fm-placeholder" placeholder="e.g. e.g. 38mm">
+    </div>
+
+    <div class="form-field" style="margin-bottom:14px">
+      <label>Section</label>
+      <select id="fm-section">
+        <option value="Identity">Identity</option>
+        <option value="Electrical">Electrical</option>
+        <option value="Thiele–Small">Thiele–Small</option>
+        <option value="Extra">Extra / Other</option>
+      </select>
+    </div>
+
+    <div id="fm-options-block" style="display:none;margin-bottom:14px">
+      <div class="form-field">
+        <label>Options (for dropdown)</label>
+        <div class="options-list" id="fm-options-list"></div>
+        <button class="btn-add-option" onclick="addSelectOption()">+ Add Option</button>
+      </div>
+    </div>
+
+    <div class="form-actions" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+      <button class="btn-cancel" onclick="closeFieldModal()">Cancel</button>
+      <button class="btn-save" onclick="saveField()" id="field-save-btn">Add Field</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+
+<script>
+// ═══════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════
+let speakers = [
+  {
+    id: 1,
+    brand: "Scanspeak",
+    model: "Revelator 15W/8530K01",
+    type: "Full-Range",
+    size: "6\"",
+    impedance: "8Ω",
+    power: "90W RMS",
+    sensitivity: "87 dB",
+    freqRange: "32Hz – 5kHz",
+    fsHz: 32,
+    qts: 0.34,
+    vas: "18.5L",
+    xmax: "7mm",
+    weight: "1.2kg",
+    enclosures: ["Sealed", "Bass Reflex", "Transmission Line"],
+    tagline: "Reference midwoofer with titanium-coated cone and symmetrical drive motor.",
+    color: "#4a9eff",
+    accent: "#64b4ff"
+  },
+  {
+    id: 2,
+    brand: "Dayton Audio",
+    model: "RSS390HF-4",
+    type: "Subwoofer",
+    size: "15\"",
+    impedance: "4Ω",
+    power: "700W RMS",
+    sensitivity: "86.5 dB",
+    freqRange: "16Hz – 250Hz",
+    fsHz: 16,
+    qts: 0.28,
+    vas: "240L",
+    xmax: "31mm",
+    weight: "11.8kg",
+    enclosures: ["Sealed", "Ported", "Isobaric", "Bandpass 4th Order"],
+    tagline: "High-excursion subwoofer engineered for infrasonic bass reproduction.",
+    color: "#ff6b35",
+    accent: "#ff8c5a"
+  },
+  {
+    id: 3,
+    brand: "Seas",
+    model: "T35 H1189-06",
+    type: "Tweeter",
+    size: "1\"",
+    impedance: "6Ω",
+    power: "130W RMS",
+    sensitivity: "91 dB",
+    freqRange: "1.2kHz – 40kHz",
+    fsHz: 550,
+    qts: 0.62,
+    vas: "0.06L",
+    xmax: "2mm",
+    weight: "0.35kg",
+    enclosures: ["Waveguide", "Open Baffle"],
+    tagline: "Fabric dome tweeter with ferrofluid cooling and extended ultra-HF response.",
+    color: "#64b4ff",
+    accent: "#89caff"
+  },
+  {
+    id: 4,
+    brand: "Faital Pro",
+    model: "8FE200",
+    type: "Midrange",
+    size: "8\"",
+    impedance: "8Ω",
+    power: "200W RMS",
+    sensitivity: "97 dB",
+    freqRange: "80Hz – 5kHz",
+    fsHz: 85,
+    qts: 0.38,
+    vas: "26L",
+    xmax: "5mm",
+    weight: "2.8kg",
+    enclosures: ["Horn", "Sealed", "Midrange Chamber"],
+    tagline: "Professional midrange with neodymium motor for high-SPL applications.",
+    color: "#b464ff",
+    accent: "#c882ff"
+  },
+  {
+    id: 5,
+    brand: "Beyma",
+    model: "12CX300Nd",
+    type: "Coaxial",
+    size: "12\"",
+    impedance: "8Ω",
+    power: "300W RMS",
+    sensitivity: "96 dB",
+    freqRange: "50Hz – 20kHz",
+    fsHz: 55,
+    qts: 0.32,
+    vas: "65L",
+    xmax: "8mm",
+    weight: "6.2kg",
+    enclosures: ["Bass Reflex", "Horn Loaded"],
+    tagline: "Integrated coaxial driver with neodymium compression driver at center phase plug.",
+    color: "#ffc832",
+    accent: "#ffd55a"
+  },
+  {
+    id: 6,
+    brand: "JBL",
+    model: "D2415K",
+    type: "Tweeter",
+    size: "1.5\"",
+    impedance: "8Ω",
+    power: "100W RMS",
+    sensitivity: "113 dB",
+    freqRange: "1kHz – 25kHz",
+    fsHz: 350,
+    qts: 0.80,
+    vas: "0.02L",
+    xmax: "1.5mm",
+    weight: "0.82kg",
+    enclosures: ["Horn Only"],
+    tagline: "Dual-diaphragm annular compression driver for ultra-high output horn systems.",
+    color: "#e8ff47",
+    accent: "#f0ff70"
+  },
+  {
+    id: 7,
+    brand: "Eminence",
+    model: "Kappa Pro 15A",
+    type: "Full-Range",
+    size: "15\"",
+    impedance: "4Ω",
+    power: "500W RMS",
+    sensitivity: "100 dB",
+    freqRange: "40Hz – 4kHz",
+    fsHz: 40,
+    qts: 0.33,
+    vas: "180L",
+    xmax: "9mm",
+    weight: "7.4kg",
+    enclosures: ["Bass Reflex", "Horn", "Sealed"],
+    tagline: "High-power professional woofer with extended frequency range and robust motor.",
+    color: "#32ffb4",
+    accent: "#55ffcc"
+  },
+  {
+    id: 8,
+    brand: "Peerless",
+    model: "SLS-830669",
+    type: "Subwoofer",
+    size: "12\"",
+    impedance: "4Ω",
+    power: "250W RMS",
+    sensitivity: "83 dB",
+    freqRange: "22Hz – 350Hz",
+    fsHz: 22,
+    qts: 0.22,
+    vas: "125L",
+    xmax: "15mm",
+    weight: "5.8kg",
+    enclosures: ["Sealed", "Ported", "Bandpass 6th Order"],
+    tagline: "Long-throw subwoofer with vented aluminum pole piece for maximum excursion.",
+    color: "#ff6b35",
+    accent: "#ff8c5a"
+  },
+  {
+    id: 9,
+    brand: "Audax",
+    model: "HDA13D34H",
+    type: "Midrange",
+    size: "5\"",
+    impedance: "6Ω",
+    power: "50W RMS",
+    sensitivity: "89 dB",
+    freqRange: "150Hz – 7kHz",
+    fsHz: 160,
+    qts: 0.70,
+    vas: "3.4L",
+    xmax: "3.5mm",
+    weight: "0.65kg",
+    enclosures: ["Sealed", "Acoustic Suspension"],
+    tagline: "Cone midrange with treated paper cone and copper demodulation ring.",
+    color: "#b464ff",
+    accent: "#c882ff"
+  },
+  {
+    id: 10,
+    brand: "RCF",
+    model: "MB10N351",
+    type: "Line Array",
+    size: "10\"",
+    impedance: "8Ω",
+    power: "350W RMS",
+    sensitivity: "98 dB",
+    freqRange: "70Hz – 3kHz",
+    fsHz: 72,
+    qts: 0.28,
+    vas: "58L",
+    xmax: "12mm",
+    weight: "4.9kg",
+    enclosures: ["Bandpass", "Ported", "Manifold Load"],
+    tagline: "Line array element driver with controlled directivity and neodymium magnet system.",
+    color: "#32ffb4",
+    accent: "#55ffcc"
+  },
+  {
+    id: 11,
+    brand: "Wavecor",
+    model: "WF182BD06",
+    type: "Full-Range",
+    size: "7\"",
+    impedance: "6Ω",
+    power: "120W RMS",
+    sensitivity: "88 dB",
+    freqRange: "35Hz – 5kHz",
+    fsHz: 35,
+    qts: 0.35,
+    vas: "22L",
+    xmax: "8mm",
+    weight: "1.9kg",
+    enclosures: ["Bass Reflex", "Sealed", "TQWT"],
+    tagline: "Audiophile-grade midwoofer with black aluminum cone and dual-layer voice coil.",
+    color: "#4a9eff",
+    accent: "#64b4ff"
+  },
+  {
+    id: 12,
+    brand: "Beyma",
+    model: "21SW1600Nd",
+    type: "Subwoofer",
+    size: "21\"",
+    impedance: "4Ω",
+    power: "1600W RMS",
+    sensitivity: "98 dB",
+    freqRange: "14Hz – 200Hz",
+    fsHz: 14,
+    qts: 0.20,
+    vas: "610L",
+    xmax: "42mm",
+    weight: "28kg",
+    enclosures: ["Ported", "Horn Loaded", "Tapped Horn"],
+    tagline: "Extreme SPL 21-inch subwoofer for large-venue professional sound reinforcement.",
+    color: "#ff6b35",
+    accent: "#ff8c5a"
+  }
+];
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let currentFilter = 'All';
+let currentSpeaker = null;
+let threeScene = null;
+let wireframeMode = false;
+let animFrameId = null;
+let modelGroup = null;
+let explodedMode = false;
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function showPage(page) {
+  document.getElementById('page-home').style.display = page === 'home' ? 'block' : 'none';
+  document.getElementById('page-detail').style.display = page === 'detail' ? 'block' : 'none';
+  document.getElementById('page-admin').style.display = page === 'admin' ? 'block' : 'none';
+  if (page === 'home') {
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    animFrameId = null;
+    window.scrollTo(0,0);
+  }
+  if (page === 'admin') {
+    renderAdminTable();
+  }
+  // Nav highlight
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  if (page === 'home') document.getElementById('nav-home').classList.add('active');
+  if (page === 'admin') document.getElementById('nav-admin').classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// GALLERY
+// ═══════════════════════════════════════════
+function filterType(type) {
+  currentFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.trim() === type || (type === 'All' && b.textContent.trim() === 'All'));
+  });
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = speakers.filter(s => {
+    const matchType = currentFilter === 'All' || s.type === currentFilter;
+    const matchQ = !q || s.model.toLowerCase().includes(q) || s.brand.toLowerCase().includes(q) || s.type.toLowerCase().includes(q);
+    return matchType && matchQ;
+  });
+  renderGallery(filtered);
+}
+
+function speakerSVG(s, size = 200) {
+  const c = s.color || '#4a9eff';
+  const isWoofer = ['Subwoofer', 'Full-Range', 'Line Array'].includes(s.type);
+  const isTweeter = s.type === 'Tweeter';
+  
+  if (isTweeter) {
+    return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="100" cy="100" r="80" fill="none" stroke="${c}" stroke-width="2" opacity="0.3"/>
+      <circle cx="100" cy="100" r="60" fill="none" stroke="${c}" stroke-width="1.5" opacity="0.5"/>
+      <circle cx="100" cy="100" r="30" fill="${c}" opacity="0.15"/>
+      <circle cx="100" cy="100" r="20" fill="${c}" opacity="0.3"/>
+      <ellipse cx="100" cy="100" rx="20" ry="8" fill="${c}" opacity="0.5"/>
+      <line x1="20" y1="100" x2="180" y2="100" stroke="${c}" stroke-width="0.5" opacity="0.2"/>
+      <line x1="100" y1="20" x2="100" y2="180" stroke="${c}" stroke-width="0.5" opacity="0.2"/>
+    </svg>`;
+  }
+  
+  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="100" cy="100" r="88" fill="none" stroke="${c}" stroke-width="2" opacity="0.25"/>
+    <circle cx="100" cy="100" r="80" fill="none" stroke="${c}" stroke-width="3" opacity="0.4"/>
+    <circle cx="100" cy="100" r="70" fill="${c}" opacity="0.04"/>
+    <circle cx="100" cy="100" r="60" fill="none" stroke="${c}" stroke-width="1" opacity="0.3"/>
+    <circle cx="100" cy="100" r="45" fill="${c}" opacity="0.08"/>
+    <circle cx="100" cy="100" r="32" fill="${c}" opacity="0.15"/>
+    <circle cx="100" cy="100" r="18" fill="${c}" opacity="0.35"/>
+    <circle cx="100" cy="100" r="8"  fill="${c}" opacity="0.7"/>
+    ${[0,45,90,135,180,225,270,315].map(a => {
+      const rad = a * Math.PI / 180;
+      const x1 = 100 + Math.cos(rad) * 32;
+      const y1 = 100 + Math.sin(rad) * 32;
+      const x2 = 100 + Math.cos(rad) * 80;
+      const y2 = 100 + Math.sin(rad) * 80;
+      return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${c}" stroke-width="1" opacity="0.15"/>`;
+    }).join('')}
+  </svg>`;
+}
+
+function renderGallery(list) {
+  const g = document.getElementById('gallery');
+  if (list.length === 0) {
+    g.innerHTML = `<div class="no-results"><span>◎</span>No speakers match your filter.</div>`;
+    return;
+  }
+  g.innerHTML = list.map((s, i) => `
+    <div class="speaker-card" style="animation-delay:${i * 0.04}s" onclick="openSpeaker(${s.id})">
+      <div class="card-thumb">
+        ${speakerSVG(s)}
+        <span class="card-type-badge badge-${s.type.toLowerCase().replace(' ','-')}">${s.type}</span>
+      </div>
+      <div class="card-info">
+        <div class="card-brand">${s.brand}</div>
+        <div class="card-name">${s.model}</div>
+        <div class="card-meta">
+          <div class="meta-item">
+            <span class="meta-val">${s.size}</span>
+            <span class="meta-key">Diameter</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-val">${s.sensitivity}</span>
+            <span class="meta-key">Sensitivity</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-val">${s.power}</span>
+            <span class="meta-key">Power</span>
+          </div>
+        </div>
+        <div class="card-arrow">→</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+// DETAIL PAGE
+// ═══════════════════════════════════════════
+function openSpeaker(id) {
+  currentSpeaker = speakers.find(s => s.id === id);
+  if (!currentSpeaker) return;
+  renderDetailContent(currentSpeaker);
+  showPage('detail');
+  setTimeout(() => initThreeJS(currentSpeaker), 100);
+}
+
+function freqCurve(s) {
+  const w = 400, h = 80;
+  const fs = s.fsHz;
+  const points = [];
+  for (let i = 0; i < 100; i++) {
+    const freq = 10 * Math.pow(2000, i / 99);
+    const x = (i / 99) * w;
+    let level = 0.5;
+    if (freq < fs) {
+      level = Math.max(0.05, 0.5 * Math.pow(freq / fs, 2));
+    } else if (freq > 10000) {
+      level = Math.max(0.1, 0.5 * Math.pow(10000 / freq, 1.2));
+    }
+    level = Math.min(0.95, level + (Math.random() * 0.02 - 0.01));
+    const y = h - level * h * 0.9;
+    points.push(`${x},${y}`);
+  }
+  return `<polyline points="${points.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" opacity="0.9"/>
+          <polyline points="0,${h} ${points.join(' ')} ${w},${h}" fill="${s.color}" fill-opacity="0.08" stroke="none"/>`;
+}
+
+function renderDetailContent(s) {
+  const dc = document.getElementById('detail-content');
+
+  // Build custom fields HTML grouped by section
+  const cfSections = {};
+  customFields.forEach(f => {
+    const val = s[f.key];
+    if (val === undefined || val === '') return;
+    if (!cfSections[f.section]) cfSections[f.section] = [];
+    cfSections[f.section].push({ label: f.label, val });
+  });
+
+  const cfHTML = Object.entries(cfSections).map(([sec, fields]) => `
+    <div class="specs-section">
+      <div class="section-title">// ${sec}</div>
+      <div class="spec-grid">
+        ${fields.map(f => `
+          <div class="spec-item">
+            <span class="spec-key">${f.label}</span>
+            <span class="spec-val">${f.val}</span>
+          </div>
+        `).join('')}
+        ${fields.length % 2 !== 0 ? '<div class="spec-item"></div>' : ''}
+      </div>
+    </div>
+  `).join('');
+  dc.innerHTML = `
+    <div class="detail-header-meta">${s.brand} &nbsp;·&nbsp; ${s.type} &nbsp;·&nbsp; ${s.size}</div>
+    <h1 class="detail-name">${s.model}</h1>
+    <p class="detail-tagline">${s.tagline}</p>
+
+    <div class="specs-section">
+      <div class="section-title">// Thiele–Small Parameters</div>
+      <div class="spec-grid">
+        <div class="spec-item">
+          <span class="spec-key">Resonant Frequency (Fs)</span>
+          <span class="spec-val highlight">${s.fsHz} Hz</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Total Q Factor (Qts)</span>
+          <span class="spec-val">${s.qts}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Equivalent Volume (Vas)</span>
+          <span class="spec-val">${s.vas}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Max Excursion (Xmax)</span>
+          <span class="spec-val highlight">${s.xmax}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Impedance</span>
+          <span class="spec-val">${s.impedance}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Sensitivity (1W/1m)</span>
+          <span class="spec-val">${s.sensitivity}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Power Handling</span>
+          <span class="spec-val highlight">${s.power}</span>
+        </div>
+        <div class="spec-item">
+          <span class="spec-key">Weight</span>
+          <span class="spec-val">${s.weight}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="freq-chart">
+      <div class="freq-label">// Frequency Response Curve (simulated)</div>
+      <div class="freq-visual">
+        <svg viewBox="0 0 400 80" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          <line x1="0" y1="40" x2="400" y2="40" stroke="#2a2a30" stroke-width="1"/>
+          <line x1="0" y1="20" x2="400" y2="20" stroke="#2a2a30" stroke-width="0.5"/>
+          <line x1="0" y1="60" x2="400" y2="60" stroke="#2a2a30" stroke-width="0.5"/>
+          ${freqCurve(s)}
+        </svg>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px;">
+        <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">10Hz</span>
+        <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">100Hz</span>
+        <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">1kHz</span>
+        <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">10kHz</span>
+        <span style="font-family:'Space Mono',monospace;font-size:9px;color:var(--muted)">${s.freqRange.split('–')[1]}</span>
+      </div>
+    </div>
+
+    <div class="specs-section">
+      <div class="section-title">// Recommended Enclosure Types</div>      <div class="enclosure-types">
+        ${s.enclosures.map((e, i) => `
+          <div class="enc-item ${i === 0 ? 'active' : ''}" onclick="selectEnclosure(this)">
+            <div class="enc-dot"></div>
+            <span class="enc-name">${e}</span>
+            <span class="enc-desc">${enclosureDesc(e)}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    ${cfHTML}
+
+    <div class="specs-section">
+      <div class="section-title">// View Gallery</div>
+      <div class="detail-gallery">
+        ${[0,1,2].map(i => `
+          <div class="detail-gallery-img">
+            ${speakerSVG(s)}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function enclosureDesc(name) {
+  const map = {
+    "Sealed": "Tight, accurate bass",
+    "Bass Reflex": "Extended low-end",
+    "Ported": "High efficiency",
+    "Isobaric": "Deep bass, compact",
+    "Transmission Line": "Smooth response",
+    "Horn": "Max SPL",
+    "Horn Only": "Max SPL",
+    "Horn Loaded": "Ultra-high SPL",
+    "Waveguide": "Controlled dispersion",
+    "Open Baffle": "Dipole radiation",
+    "Midrange Chamber": "Isolation mount",
+    "Acoustic Suspension": "Linear excursion",
+    "TQWT": "Pipe resonance",
+    "Bandpass 4th Order": "Filtered output",
+    "Bandpass 6th Order": "High-order filter",
+    "Manifold Load": "Array coupling",
+    "Tapped Horn": "Horn sub loading",
+  };
+  return map[name] || "Engineering design";
+}
+
+function selectEnclosure(el) {
+  document.querySelectorAll('.enc-item').forEach(e => e.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════
+// THREE.JS 3D MODEL
+// ═══════════════════════════════════════════
+function initThreeJS(s) {
+  const canvas = document.getElementById('three-canvas');
+  const container = canvas.parentElement;
+  
+  if (threeScene) {
+    threeScene.renderer.dispose();
+  }
+
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setSize(w, h);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x111113, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(0x111113, 8, 20);
+
+  const camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
+  camera.position.set(0, 0, 5);
+
+  // Lights
+  const amb = new THREE.AmbientLight(0xffffff, 0.3);
+  scene.add(amb);
+  const hex = parseInt(s.color.replace('#',''), 16);
+  const key = new THREE.DirectionalLight(hex, 2);
+  key.position.set(3, 5, 3);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xffffff, 0.5);
+  fill.position.set(-3, -2, 2);
+  scene.add(fill);
+  const rim = new THREE.DirectionalLight(hex, 1);
+  rim.position.set(0, 0, -5);
+  scene.add(rim);
+
+  // Grid
+  const grid = new THREE.GridHelper(12, 24, 0x222228, 0x1a1a20);
+  grid.position.y = -2.2;
+  scene.add(grid);
+
+  modelGroup = new THREE.Group();
+  buildSpeakerModel(modelGroup, s);
+  scene.add(modelGroup);
+
+  // Mouse interaction
+  let isDragging = false;
+  let prevMouse = {x: 0, y: 0};
+  let rotX = 0.3, rotY = 0;
+  let targetX = 0.3, targetY = 0;
+
+  canvas.addEventListener('mousedown', e => {
+    isDragging = true;
+    prevMouse = {x: e.clientX, y: e.clientY};
+  });
+  canvas.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseleave', () => isDragging = false);
+  canvas.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - prevMouse.x;
+    const dy = e.clientY - prevMouse.y;
+    targetY += dx * 0.01;
+    targetX += dy * 0.005;
+    targetX = Math.max(-0.8, Math.min(0.8, targetX));
+    prevMouse = {x: e.clientX, y: e.clientY};
+  });
+  canvas.addEventListener('wheel', e => {
+    camera.position.z = Math.max(2, Math.min(10, camera.position.z + e.deltaY * 0.01));
+  });
+
+  // Touch support
+  let lastTouch = null;
+  canvas.addEventListener('touchstart', e => {
+    lastTouch = e.touches[0];
+  });
+  canvas.addEventListener('touchmove', e => {
+    if (!lastTouch) return;
+    const t = e.touches[0];
+    targetY += (t.clientX - lastTouch.clientX) * 0.01;
+    targetX += (t.clientY - lastTouch.clientY) * 0.005;
+    targetX = Math.max(-0.8, Math.min(0.8, targetX));
+    lastTouch = t;
+    e.preventDefault();
+  }, {passive: false});
+
+  threeScene = { renderer, scene, camera };
+
+  // Auto-rotate slow
+  let autoRot = true;
+  canvas.addEventListener('mousedown', () => autoRot = false);
+
+  function animate() {
+    animFrameId = requestAnimationFrame(animate);
+    if (autoRot) targetY += 0.003;
+    rotX += (targetX - rotX) * 0.08;
+    rotY += (targetY - rotY) * 0.08;
+    modelGroup.rotation.x = rotX;
+    modelGroup.rotation.y = rotY;
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    const nw = container.clientWidth, nh = container.clientHeight;
+    camera.aspect = nw / nh;
+    camera.updateProjectionMatrix();
+    renderer.setSize(nw, nh);
+  });
+}
+
+function buildSpeakerModel(group, s, exploded = false) {
+  while(group.children.length) group.remove(group.children[0]);
+
+  const col = new THREE.Color(s.color);
+  const mat = (opacity = 1, emissive = false) => new THREE.MeshStandardMaterial({
+    color: col,
+    emissive: emissive ? col : 0x000000,
+    emissiveIntensity: emissive ? 0.2 : 0,
+    metalness: 0.7,
+    roughness: 0.3,
+    transparent: opacity < 1,
+    opacity
+  });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1e, metalness: 0.8, roughness: 0.4 });
+  const wireMat = new THREE.MeshStandardMaterial({ color: 0x888899, metalness: 0.9, roughness: 0.2 });
+
+  const ez = exploded;
+  const isTweeter = s.type === 'Tweeter';
+
+  if (isTweeter) {
+    // Tweeter: dome + flange
+    const flange = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.12, 48), darkMat);
+    flange.position.y = ez ? -0.8 : 0;
+    group.add(flange);
+
+    const faceplate = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.05, 48), mat());
+    faceplate.position.y = ez ? -0.4 : 0.1;
+    group.add(faceplate);
+
+    const domeGeo = new THREE.SphereGeometry(0.45, 32, 16, 0, Math.PI*2, 0, Math.PI/2);
+    const dome = new THREE.Mesh(domeGeo, mat(0.9, true));
+    dome.position.y = ez ? 0.4 : 0.13;
+    group.add(dome);
+
+    const surr = new THREE.Mesh(new THREE.TorusGeometry(0.52, 0.07, 12, 48), mat(0.7));
+    surr.position.y = ez ? 0.3 : 0.12;
+    group.add(surr);
+
+    const vc = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.3, 24), wireMat);
+    vc.position.y = ez ? -0.2 : 0;
+    group.add(vc);
+
+    const magnet = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.5, 32), darkMat);
+    magnet.position.y = ez ? -1.6 : -0.4;
+    group.add(magnet);
+
+  } else {
+    // Woofer/midrange
+    const frame = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.12, 8, 48), darkMat);
+    frame.rotation.x = Math.PI / 2;
+    frame.position.y = ez ? 1.5 : 0;
+    group.add(frame);
+
+    // Surround
+    const surrGeo = new THREE.TorusGeometry(1.35, 0.18, 12, 48);
+    const surr = new THREE.Mesh(surrGeo, mat(0.8));
+    surr.rotation.x = Math.PI / 2;
+    surr.position.y = ez ? 1.0 : -0.02;
+    group.add(surr);
+
+    // Cone
+    const coneGeo = new THREE.ConeGeometry(1.15, 0.9, 48, 8, true);
+    const cone = new THREE.Mesh(coneGeo, mat(0.95));
+    cone.position.y = ez ? 0.5 : -0.42;
+    cone.rotation.y = 0;
+    group.add(cone);
+
+    // Dust cap
+    const capGeo = new THREE.SphereGeometry(0.28, 24, 12, 0, Math.PI*2, 0, Math.PI*0.6);
+    const cap = new THREE.Mesh(capGeo, mat(1, true));
+    cap.position.y = ez ? 0.3 : -0.9;
+    group.add(cap);
+
+    // Spider
+    const spiderGeo = new THREE.TorusGeometry(0.55, 0.06, 8, 48);
+    const spider = new THREE.Mesh(spiderGeo, mat(0.6));
+    spider.rotation.x = Math.PI/2;
+    spider.position.y = ez ? -0.5 : -1.1;
+    group.add(spider);
+
+    // Voice coil former
+    const vcGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.5, 24);
+    const vc = new THREE.Mesh(vcGeo, wireMat);
+    vc.position.y = ez ? -0.9 : -1.2;
+    group.add(vc);
+
+    // Top plate
+    const topPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.1, 32), darkMat);
+    topPlate.position.y = ez ? -1.4 : -1.5;
+    group.add(topPlate);
+
+    // Magnet
+    const magnGeo = new THREE.CylinderGeometry(0.75, 0.75, 0.55, 32);
+    const magnet = new THREE.Mesh(magnGeo, new THREE.MeshStandardMaterial({ color: 0x2a2a40, metalness: 0.9, roughness: 0.3 }));
+    magnet.position.y = ez ? -2.1 : -1.85;
+    group.add(magnet);
+
+    // Bottom plate
+    const botPlate = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.85, 0.1, 32), darkMat);
+    botPlate.position.y = ez ? -2.7 : -2.15;
+    group.add(botPlate);
+
+    // Basket spokes
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2;
+      const spoke = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.05, 1.2),
+        darkMat
+      );
+      spoke.position.set(Math.cos(ang) * 0.95, ez ? -0.5 : -0.8, Math.sin(ang) * 0.95);
+      spoke.rotation.y = ang;
+      group.add(spoke);
+    }
+  }
+}
+
+function setModelView(view) {
+  document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  
+  if (!modelGroup || !threeScene) return;
+
+  if (view === 'explode') {
+    explodedMode = true;
+    buildSpeakerModel(modelGroup, currentSpeaker, true);
+  } else if (view === 'front') {
+    explodedMode = false;
+    buildSpeakerModel(modelGroup, currentSpeaker, false);
+  } else if (view === 'side') {
+    explodedMode = false;
+    buildSpeakerModel(modelGroup, currentSpeaker, false);
+    // Rotate to section view
+    modelGroup.rotation.y = Math.PI / 2;
+  }
+}
+
+function toggleWireframe() {
+  wireframeMode = !wireframeMode;
+  if (!modelGroup) return;
+  modelGroup.traverse(child => {
+    if (child.isMesh && child.material) {
+      child.material.wireframe = wireframeMode;
+    }
+  });
+  event.target.classList.toggle('active', wireframeMode);
+}
+
+// ═══════════════════════════════════════════
+// SUPABASE CONFIG — paste your values here
+// ═══════════════════════════════════════════
+const SUPABASE_URL    = 'YOUR_SUPABASE_URL';       // e.g. https://xyzxyz.supabase.co
+const SUPABASE_ANON   = 'YOUR_SUPABASE_ANON_KEY';  // safe to expose — RLS protects writes
+
+// Low-level helper: authenticated fetch to Supabase REST API
+async function sbFetch(path, options = {}) {
+  const headers = {
+    'apikey': SUPABASE_ANON,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation',
+    ...options.headers
+  };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `HTTP ${res.status}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+// ───────────────────────────────────────────
+// SPEAKERS
+// ───────────────────────────────────────────
+async function loadDB() {
+  const rows = await sbFetch('speakers?select=*&order=id.asc');
+  // Map DB column names (snake_case) → app field names (camelCase)
+  return rows.map(dbToApp);
+}
+
+async function saveDB() {
+  // Not used directly — insertSpeaker / updateSpeaker / deleteSpeaker are called instead
+}
+
+async function insertSpeaker(entry) {
+  const row = appToDB(entry);
+  delete row.id; // let Postgres generate it
+  const [created] = await sbFetch('speakers', {
+    method: 'POST',
+    body: JSON.stringify(row)
+  });
+  return dbToApp(created);
+}
+
+async function updateSpeaker(entry) {
+  const row = appToDB(entry);
+  const [updated] = await sbFetch(`speakers?id=eq.${entry.id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(row)
+  });
+  return dbToApp(updated);
+}
+
+async function deleteSpeaker(id) {
+  await sbFetch(`speakers?id=eq.${id}`, { method: 'DELETE' });
+}
+
+// snake_case DB row → camelCase app object
+function dbToApp(r) {
+  return {
+    id:          r.id,
+    brand:       r.brand,
+    model:       r.model,
+    type:        r.type,
+    size:        r.size        || '',
+    tagline:     r.tagline     || '',
+    impedance:   r.impedance   || '',
+    power:       r.power       || '',
+    sensitivity: r.sensitivity || '',
+    freqRange:   r.freq_range  || '',
+    fsHz:        r.fs_hz       || 0,
+    qts:         r.qts         || 0,
+    vas:         r.vas         || '',
+    xmax:        r.xmax        || '',
+    weight:      r.weight      || '',
+    enclosures:  r.enclosures  || [],
+    color:       r.color       || '#e8ff47',
+    accent:      r.accent      || '#e8ff47',
+    ...(r.custom_data || {})   // spread custom field values into top-level
+  };
+}
+
+// camelCase app object → snake_case DB row
+function appToDB(s) {
+  const builtInKeys = new Set(['id','brand','model','type','size','tagline','impedance',
+    'power','sensitivity','freqRange','fsHz','qts','vas','xmax','weight','enclosures','color','accent']);
+  const customData = {};
+  Object.keys(s).forEach(k => { if (!builtInKeys.has(k)) customData[k] = s[k]; });
+  return {
+    id:          s.id,
+    brand:       s.brand,
+    model:       s.model,
+    type:        s.type,
+    size:        s.size,
+    tagline:     s.tagline,
+    impedance:   s.impedance,
+    power:       s.power,
+    sensitivity: s.sensitivity,
+    freq_range:  s.freqRange,
+    fs_hz:       s.fsHz,
+    qts:         s.qts,
+    vas:         s.vas,
+    xmax:        s.xmax,
+    weight:      s.weight,
+    enclosures:  s.enclosures,
+    color:       s.color,
+    accent:      s.accent,
+    custom_data: customData
+  };
+}
+
+// ───────────────────────────────────────────
+// CUSTOM FIELDS
+// ───────────────────────────────────────────
+async function loadFields() {
+  const rows = await sbFetch('custom_fields?select=*&order=sort_order.asc,id.asc');
+  return rows.map(r => ({
+    key:         r.key,
+    label:       r.label,
+    type:        r.type,
+    placeholder: r.placeholder || '',
+    section:     r.section     || 'Extra',
+    options:     r.options     || []
+  }));
+}
+
+async function saveFields() {
+  // Sync entire customFields array: upsert all, then delete removed ones
+  if (customFields.length === 0) {
+    await sbFetch('custom_fields', { method: 'DELETE',
+      headers: { 'Prefer': '' } }); // delete all
+    return;
+  }
+  const rows = customFields.map((f, i) => ({
+    key:         f.key,
+    label:       f.label,
+    type:        f.type,
+    placeholder: f.placeholder || '',
+    section:     f.section,
+    options:     f.options || [],
+    sort_order:  i
+  }));
+  await sbFetch('custom_fields?on_conflict=key', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(rows)
+  });
+  // Remove any keys from DB that are no longer in customFields
+  const keys = customFields.map(f => `"${f.key}"`).join(',');
+  await sbFetch(`custom_fields?key=not.in.(${keys})`, { method: 'DELETE',
+    headers: { 'Prefer': '' } });
+}
+
+// ───────────────────────────────────────────
+// BUILT-IN OVERRIDES
+// ───────────────────────────────────────────
+async function loadBuiltInOverrides() {
+  const rows = await sbFetch('builtin_overrides?select=*');
+  const result = {};
+  rows.forEach(r => {
+    result[r.key] = { label: r.label, placeholder: r.placeholder, section: r.section };
+  });
+  return result;
+}
+
+async function saveBuiltInOverrides() {
+  const rows = Object.entries(builtInOverrides).map(([key, ov]) => ({
+    key,
+    label:       ov.label       || null,
+    placeholder: ov.placeholder || null,
+    section:     ov.section     || null
+  }));
+  if (rows.length === 0) return;
+  await sbFetch('builtin_overrides?on_conflict=key', {
+    method: 'POST',
+    headers: { 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(rows)
+  });
+}
+
+async function deleteBuiltInOverride(key) {
+  await sbFetch(`builtin_overrides?key=eq.${key}`, { method: 'DELETE',
+    headers: { 'Prefer': '' } });
+}
+
+// ═══════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════
+let authToken   = null;
+let currentUser = null;
+
+async function signIn(email, password) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_ANON, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || data.msg || 'Login failed');
+  authToken   = data.access_token;
+  currentUser = data.user;
+  sessionStorage.setItem('sb_token', authToken);
+}
+
+async function signOut() {
+  try {
+    await fetch(`${SUPABASE_URL}/auth/v1/logout`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${authToken}` }
+    });
+  } catch(e) {}
+  authToken   = null;
+  currentUser = null;
+  sessionStorage.removeItem('sb_token');
+  // Reset nav
+  document.getElementById('nav-admin').style.display      = 'none';
+  document.getElementById('nav-user-area').style.display  = 'none';
+  document.getElementById('nav-signout-li').style.display = 'none';
+  document.getElementById('nav-signin-li').style.display  = '';
+  showPage('home');
+  showLoginScreen();
+}
+
+async function restoreSession() {
+  const token = sessionStorage.getItem('sb_token');
+  if (!token) return false;
+  // Verify token is still valid
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { 'apikey': SUPABASE_ANON, 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) { authToken = token; currentUser = await res.json(); return true; }
+  } catch(e) {}
+  sessionStorage.removeItem('sb_token');
+  return false;
+}
+
+// ═══════════════════════════════════════════
+// CUSTOM FIELDS STATE (unchanged)
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+let customFields = []; // [{key, label, type, placeholder, section, options?}]
+
+const BUILT_IN_FIELDS = [
+  { key:'brand',       label:'Brand',           section:'Identity',     type:'text',     placeholder:'e.g. Scanspeak' },
+  { key:'model',       label:'Model',           section:'Identity',     type:'text',     placeholder:'e.g. 15W/8530K01' },
+  { key:'type',        label:'Type',            section:'Identity',     type:'select',   placeholder:'' },
+  { key:'size',        label:'Driver Size',     section:'Identity',     type:'text',     placeholder:'e.g. 6"' },
+  { key:'tagline',     label:'Tagline',         section:'Identity',     type:'textarea', placeholder:'Short technical description...' },
+  { key:'weight',      label:'Weight',          section:'Identity',     type:'text',     placeholder:'e.g. 1.2kg' },
+  { key:'impedance',   label:'Impedance',       section:'Electrical',   type:'text',     placeholder:'e.g. 8Ω' },
+  { key:'power',       label:'Power (RMS)',     section:'Electrical',   type:'text',     placeholder:'e.g. 90W RMS' },
+  { key:'sensitivity', label:'Sensitivity',     section:'Electrical',   type:'text',     placeholder:'e.g. 87 dB' },
+  { key:'freqRange',   label:'Freq. Range',     section:'Electrical',   type:'text',     placeholder:'e.g. 32Hz – 5kHz' },
+  { key:'fsHz',        label:'Fs (Hz)',          section:'Thiele–Small', type:'number',   placeholder:'e.g. 32' },
+  { key:'qts',         label:'Qts',             section:'Thiele–Small', type:'number',   placeholder:'e.g. 0.34' },
+  { key:'vas',         label:'Vas',             section:'Thiele–Small', type:'text',     placeholder:'e.g. 18.5L' },
+  { key:'xmax',        label:'Xmax',            section:'Thiele–Small', type:'text',     placeholder:'e.g. 7mm' },
+  { key:'enclosures',  label:'Enclosure Types', section:'Identity',     type:'chips',    placeholder:'' },
+  { key:'color',       label:'Accent Colour',   section:'Identity',     type:'color',    placeholder:'' },
+];
+
+// Overrides for built-in fields — only label, placeholder, section can be changed
+let builtInOverrides = {}; // { [key]: { label?, placeholder?, section? } }
+
+// Get effective built-in field (merged with any override)
+function effectiveBuiltIn(f) {
+  const ov = builtInOverrides[f.key] || {};
+  return { ...f, ...ov };
+}
+
+// ═══════════════════════════════════════════
+// ADMIN TABS
+// ═══════════════════════════════════════════
+function switchAdminTab(tab, el) {
+  document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'fields') renderFieldsManager();
+  if (tab === 'speakers') { closeForm(); renderAdminTable(); }
+  document.getElementById('form-pane-content').innerHTML = `
+    <div class="form-empty">
+      <span class="form-empty-icon">◎</span>
+      ${tab === 'fields'
+        ? 'Click ✎ on any field to edit its label,<br>placeholder, or section.<br><br>Or click <strong style="color:var(--accent)">+ Add Custom Field</strong>.'
+        : 'Select a speaker to edit,<br>or click <strong style="color:var(--accent)">+ Add Speaker</strong><br>to create a new entry.'}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════
+// FIELDS MANAGER
+// ═══════════════════════════════════════════
+function renderFieldsManager() {
+  const builtInEl = document.getElementById('built-in-fields-list');
+  builtInEl.innerHTML = BUILT_IN_FIELDS.map((f) => {
+    const ef = effectiveBuiltIn(f);
+    const isOverridden = !!builtInOverrides[f.key];
+    return `
+    <div class="field-row">
+      <div class="field-info">
+        <div class="field-name">${ef.label}${isOverridden ? ' <span style="color:var(--accent);font-size:9px">✦ edited</span>' : ''}</div>
+        <div class="field-meta">key: ${f.key} · ${ef.section} · ${f.type}</div>
+      </div>
+      <div class="admin-actions">
+        <button class="btn-icon" onclick="openBuiltInModal('${f.key}')" title="Edit">✎</button>
+        ${isOverridden ? `<button class="btn-icon danger" onclick="resetBuiltIn('${f.key}')" title="Reset to default">↺</button>` : '<div style="width:30px"></div>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  renderCustomFieldsList();
+}
+
+function renderCustomFieldsList() {
+  const el = document.getElementById('custom-fields-list');
+  if (!el) return;
+  if (customFields.length === 0) {
+    el.innerHTML = `<div style="padding:20px 24px;font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:0.08em">No custom fields yet.</div>`;
+    return;
+  }
+  el.innerHTML = customFields.map((f, i) => `
+    <div class="field-row">
+      <span class="field-drag">⠿</span>
+      <div class="field-info">
+        <div class="field-name">${f.label}</div>
+        <div class="field-meta">key: ${f.key} · ${f.section} · ${f.type}${f.type === 'select' ? ' ('+f.options.length+' opts)' : ''}</div>
+      </div>
+      <span class="field-type-tag">${f.type}</span>
+      <div class="admin-actions">
+        <button class="btn-icon" onclick="openFieldModal(${i})" title="Edit">✎</button>
+        <button class="btn-icon danger" onclick="deleteCustomField(${i})" title="Remove">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+// BUILT-IN FIELD MODAL
+// ═══════════════════════════════════════════
+let editingBuiltInKey = null;
+
+function openBuiltInModal(key) {
+  editingBuiltInKey = key;
+  const base = BUILT_IN_FIELDS.find(f => f.key === key);
+  const ef   = effectiveBuiltIn(base);
+
+  document.getElementById('field-modal-title').textContent = `Edit Built-in: ${base.label}`;
+  document.getElementById('fm-label').value       = ef.label;
+  document.getElementById('fm-key').value         = key;
+  document.getElementById('fm-placeholder').value = ef.placeholder || '';
+  document.getElementById('fm-section').value     = ef.section;
+  document.getElementById('field-save-btn').textContent = 'Save Changes';
+
+  // Lock key and type — these are hardwired
+  const keyInput  = document.getElementById('fm-key');
+  const typeInput = document.getElementById('fm-type');
+  keyInput.readOnly  = true;
+  keyInput.style.opacity  = '0.4';
+  keyInput.title = 'Key cannot be changed on built-in fields';
+  typeInput.value    = base.type;
+  typeInput.disabled = true;
+  typeInput.style.opacity = '0.4';
+  typeInput.title = 'Type cannot be changed on built-in fields';
+
+  // Hide options block — built-ins with type 'select', 'chips', 'color' are handled internally
+  document.getElementById('fm-options-block').style.display = 'none';
+
+  // Label oninput — allowed
+  document.getElementById('fm-label').oninput = null;
+
+  // Show a note about what can be changed
+  let noteEl = document.getElementById('fm-builtin-note');
+  if (!noteEl) {
+    noteEl = document.createElement('div');
+    noteEl.id = 'fm-builtin-note';
+    noteEl.style.cssText = 'font-family:Space Mono,monospace;font-size:9px;letter-spacing:0.1em;color:var(--muted);padding:10px 14px;border:1px solid var(--border);border-radius:2px;line-height:1.7;margin-bottom:14px';
+    document.getElementById('fm-section').parentElement.parentElement.insertBefore(noteEl, document.getElementById('fm-section').parentElement.nextSibling);
+  }
+  noteEl.textContent = '// Built-in fields: label, placeholder and section are editable. Key and type are locked.';
+  noteEl.style.display = 'block';
+
+  document.getElementById('field-modal').classList.add('open');
+}
+
+// Patch saveField to handle built-in overrides vs custom fields
+async function saveField() {
+  const label       = document.getElementById('fm-label').value.trim();
+  const key         = document.getElementById('fm-key').value.trim();
+  const type        = document.getElementById('fm-type').value;
+  const placeholder = document.getElementById('fm-placeholder').value.trim();
+  const section     = document.getElementById('fm-section').value;
+
+  if (!label || !key) { showToast('Label and Key are required!', true); return; }
+
+  // --- Saving a BUILT-IN override ---
+  if (editingBuiltInKey) {
+    builtInOverrides[editingBuiltInKey] = { label, placeholder, section };
+    try {
+      await saveBuiltInOverrides();
+      showToast('Built-in field updated ✓');
+    } catch(err) { showToast('Error: ' + err.message, true); }
+    editingBuiltInKey = null;
+    // Re-enable type select for next time
+    const typeInput = document.getElementById('fm-type');
+    if (typeInput) { typeInput.disabled = false; typeInput.style.opacity = '1'; typeInput.title = ''; }
+    // Hide note
+    const noteEl = document.getElementById('fm-builtin-note');
+    if (noteEl) noteEl.style.display = 'none';
+    closeFieldModal();
+    renderFieldsManager();
+    showToast('Built-in field updated ✓');
+    return;
+  }
+
+  // --- Saving a CUSTOM field ---
+  const allKeys = [
+    ...BUILT_IN_FIELDS.map(f => f.key),
+    ...customFields.filter((_, i) => i !== editingFieldIndex).map(f => f.key)
+  ];
+  if (allKeys.includes(key)) { showToast('Key already exists!', true); return; }
+
+  const field = { key, label, type, placeholder, section };
+  if (type === 'select') {
+    field.options = getCurrentOptions().filter(Boolean);
+    if (field.options.length === 0) { showToast('Add at least one option!', true); return; }
+  }
+
+  if (editingFieldIndex !== null) {
+    customFields[editingFieldIndex] = field;
+  } else {
+    customFields.push(field);
+  }
+  try {
+    await saveFields();
+    showToast(editingFieldIndex !== null ? 'Field updated ✓' : 'Field added ✓');
+  } catch(err) { showToast('Error: ' + err.message, true); }
+  closeFieldModal();
+  renderCustomFieldsList();
+}
+
+// ═══════════════════════════════════════════
+// FIELD MODAL (custom fields)
+// ═══════════════════════════════════════════
+let editingFieldIndex = null;
+
+function openFieldModal(idx) {
+  editingFieldIndex = idx;
+  const f = (idx !== null && idx !== undefined) ? customFields[idx] : null;
+
+  document.getElementById('field-modal-title').textContent = f ? 'Edit Field' : 'New Custom Field';
+  document.getElementById('fm-label').value       = f ? f.label : '';
+  document.getElementById('fm-key').value         = f ? f.key   : '';
+  document.getElementById('fm-placeholder').value = f ? (f.placeholder || '') : '';
+  document.getElementById('fm-section').value     = f ? f.section : 'Extra';
+  document.getElementById('field-save-btn').textContent = f ? 'Save Changes' : 'Add Field';
+
+  // Lock key field when editing (changing key would break saved data)
+  const keyInput = document.getElementById('fm-key');
+  keyInput.readOnly = !!f;
+  keyInput.style.opacity = f ? '0.4' : '1';
+  keyInput.title = f ? 'Key cannot be changed after creation' : '';
+
+  // Set type BEFORE calling onFieldTypeChange
+  document.getElementById('fm-type').value = f ? f.type : 'text';
+
+  // Seed _tempOptions from existing field options
+  _tempOptions = (f && f.type === 'select' && Array.isArray(f.options)) ? [...f.options] : [];
+  renderOptionsList(_tempOptions);
+  onFieldTypeChange();
+
+  // Auto-generate key from label (new fields only)
+  const labelInput = document.getElementById('fm-label');
+  labelInput.oninput = function() {
+    if (!f) {
+      document.getElementById('fm-key').value = this.value
+        .trim().toLowerCase()
+        .replace(/[^a-z0-9 ]/g, '')
+        .replace(/ +(.)/g, (_, c) => c.toUpperCase());
+    }
+  };
+
+  document.getElementById('field-modal').classList.add('open');
+}
+
+function closeFieldModal() {
+  editingFieldIndex = null;
+  editingBuiltInKey = null;
+  // Re-enable type select in case it was disabled for a built-in edit
+  const typeInput = document.getElementById('fm-type');
+  if (typeInput) { typeInput.disabled = false; typeInput.style.opacity = '1'; typeInput.title = ''; }
+  const keyInput = document.getElementById('fm-key');
+  if (keyInput) { keyInput.readOnly = false; keyInput.style.opacity = '1'; keyInput.title = ''; }
+  const noteEl = document.getElementById('fm-builtin-note');
+  if (noteEl) noteEl.style.display = 'none';
+  document.getElementById('field-modal').classList.remove('open');
+}
+
+function onFieldTypeChange() {
+  const type = document.getElementById('fm-type').value;
+  const block = document.getElementById('fm-options-block');
+  block.style.display = type === 'select' ? 'block' : 'none';
+}
+
+let _tempOptions = [];
+
+function renderOptionsList(opts) {
+  _tempOptions = [...opts]; // keep in sync
+  const el = document.getElementById('fm-options-list');
+  if (!el) return;
+  el.innerHTML = _tempOptions.map((o, i) => `
+    <div class="option-row">
+      <input type="text" value="${o.replace(/"/g,'&quot;')}" placeholder="Option value"
+        oninput="_tempOptions[${i}] = this.value">
+      <button class="btn-remove-option" onclick="removeOption(${i})">✕</button>
+    </div>
+  `).join('') || '<div style="font-family:\'Space Mono\',monospace;font-size:10px;color:var(--dim);padding:4px 0">No options yet — add one below.</div>';
+}
+
+function addSelectOption() {
+  _tempOptions.push('');
+  renderOptionsList(_tempOptions);
+  // Focus the last input
+  const inputs = document.querySelectorAll('#fm-options-list .option-row input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function removeOption(i) {
+  _tempOptions.splice(i, 1);
+  renderOptionsList(_tempOptions);
+}
+
+function getCurrentOptions() {
+  return [..._tempOptions];
+}
+
+async function deleteCustomField(i) {
+  const f = customFields[i];
+  if (!confirm(`Remove field "${f.label}"? Existing speaker data under key "${f.key}" will not be deleted.`)) return;
+  customFields.splice(i, 1);
+  try {
+    await saveFields();
+    showToast('Field removed ✓');
+  } catch(err) { showToast('Error: ' + err.message, true); }
+  renderCustomFieldsList();
+}
+
+async function resetBuiltIn(key) {
+  if (!confirm(`Reset "${key}" to its default label and settings?`)) return;
+  delete builtInOverrides[key];
+  try {
+    await deleteBuiltInOverride(key);
+    showToast('Field reset to default ✓');
+  } catch(err) { showToast('Error: ' + err.message, true); }
+  renderFieldsManager();
+}
+
+// ═══════════════════════════════════════════
+// ADMIN TABLE
+// ═══════════════════════════════════════════
+let activeEditId = null;
+let deleteTargetId = null;
+
+function renderAdminTable() {
+  const tbody = document.getElementById('admin-table-body');
+  if (!tbody) return;
+  document.getElementById('admin-count').textContent = speakers.length;
+  tbody.innerHTML = speakers.map(s => `
+    <tr class="${activeEditId === s.id ? 'admin-row-active' : ''}">
+      <td>
+        <div class="admin-brand">${s.brand}</div>
+        <div class="admin-model">${s.model}</div>
+      </td>
+      <td>
+        <span class="admin-type-pill badge-${s.type.toLowerCase().replace(' ','-')}">${s.type}</span>
+      </td>
+      <td style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted)">${s.size}</td>
+      <td>
+        <div class="admin-actions">
+          <button class="btn-icon" onclick="openForm(${s.id})" title="Edit">✎</button>
+          <button class="btn-icon danger" onclick="openDeleteModal(${s.id})" title="Delete">✕</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════
+// FORM — dynamic, includes custom fields
+// ═══════════════════════════════════════════
+const ALL_TYPES = ['Full-Range','Subwoofer','Tweeter','Midrange','Coaxial','Line Array'];
+const ALL_ENCLOSURES = ['Sealed','Bass Reflex','Ported','Isobaric','Bandpass 4th Order','Bandpass 6th Order',
+  'Transmission Line','Horn','Horn Loaded','Horn Only','Waveguide','Open Baffle','Midrange Chamber',
+  'Acoustic Suspension','TQWT','Tapped Horn','Manifold Load'];
+const COLORS = ['#e8ff47','#ff6b35','#64b4ff','#b464ff','#ffc832','#32ffb4','#ff4488','#4affcc','#ffaa33','#a0ff80'];
+
+let selectedEnclosures = [];
+let selectedColor = '#e8ff47';
+let editingId = null;
+
+function renderCustomFieldsInForm(s, section) {
+  const fields = customFields.filter(f => f.section === section);
+  if (!fields.length) return '';
+  // Group into rows of 2
+  let html = '';
+  for (let i = 0; i < fields.length; i += 2) {
+    html += '<div class="form-row">';
+    for (let j = i; j < Math.min(i+2, fields.length); j++) {
+      const f = fields[j];
+      const val = s && s[f.key] !== undefined ? s[f.key] : '';
+      html += `<div class="form-field"><label>${f.label}</label>`;
+      if (f.type === 'text' || f.type === 'number') {
+        html += `<input type="${f.type}" id="cf-${f.key}" placeholder="${f.placeholder || ''}" value="${val}">`;
+      } else if (f.type === 'textarea') {
+        html += `<textarea id="cf-${f.key}" placeholder="${f.placeholder || ''}">${val}</textarea>`;
+      } else if (f.type === 'select') {
+        html += `<select id="cf-${f.key}">
+          <option value="">— Select —</option>
+          ${f.options.map(o => `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('')}
+        </select>`;
+      }
+      html += '</div>';
+    }
+    if (fields.length % 2 !== 0 && i + 2 >= fields.length) html += '<div class="form-field"></div>';
+    html += '</div>';
+  }
+  return html;
+}
+
+function openForm(id) {
+  editingId = id;
+  activeEditId = id;
+  renderAdminTable();
+
+  const s = id ? speakers.find(x => x.id === id) : null;
+  selectedEnclosures = s ? [...s.enclosures] : [];
+  selectedColor = s ? s.color : '#e8ff47';
+
+  // Helper: get effective label/placeholder for a built-in key
+  const bl = (key) => {
+    const base = BUILT_IN_FIELDS.find(f => f.key === key);
+    return effectiveBuiltIn(base);
+  };
+
+  const extraFields = renderCustomFieldsInForm(s, 'Extra');
+
+  document.getElementById('form-pane-content').innerHTML = `
+    <div class="form-pane-header">
+      <div class="form-pane-title">${s ? 'Edit Speaker' : 'New Speaker'}</div>
+      <div class="form-pane-sub">${s ? s.brand + ' ' + s.model : 'Fill in the details below'}</div>
+    </div>
+    <div class="form-body">
+
+      <div class="form-section-label">// Identity</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>${bl('brand').label}</label>
+          <input type="text" id="f-brand" placeholder="${bl('brand').placeholder}" value="${s ? s.brand : ''}">
+        </div>
+        <div class="form-field">
+          <label>${bl('model').label}</label>
+          <input type="text" id="f-model" placeholder="${bl('model').placeholder}" value="${s ? s.model : ''}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>${bl('type').label}</label>
+          <select id="f-type">
+            ${ALL_TYPES.map(t => `<option value="${t}" ${s && s.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="form-field">
+          <label>${bl('size').label}</label>
+          <input type="text" id="f-size" placeholder="${bl('size').placeholder}" value="${s ? s.size : ''}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>${bl('weight').label}</label>
+          <input type="text" id="f-weight" placeholder="${bl('weight').placeholder}" value="${s ? s.weight : ''}">
+        </div>
+        <div class="form-field"></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-field">
+          <label>${bl('tagline').label}</label>
+          <textarea id="f-tagline" placeholder="${bl('tagline').placeholder}">${s ? s.tagline : ''}</textarea>
+        </div>
+      </div>
+      ${renderCustomFieldsInForm(s, 'Identity')}
+
+      <div class="form-section-label">// Electrical</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>${bl('impedance').label}</label>
+          <input type="text" id="f-impedance" placeholder="${bl('impedance').placeholder}" value="${s ? s.impedance : ''}">
+        </div>
+        <div class="form-field">
+          <label>${bl('power').label}</label>
+          <input type="text" id="f-power" placeholder="${bl('power').placeholder}" value="${s ? s.power : ''}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>${bl('sensitivity').label}</label>
+          <input type="text" id="f-sensitivity" placeholder="${bl('sensitivity').placeholder}" value="${s ? s.sensitivity : ''}">
+        </div>
+        <div class="form-field">
+          <label>${bl('freqRange').label}</label>
+          <input type="text" id="f-freqRange" placeholder="${bl('freqRange').placeholder}" value="${s ? s.freqRange : ''}">
+        </div>
+      </div>
+      ${renderCustomFieldsInForm(s, 'Electrical')}
+
+      <div class="form-section-label">// Thiele–Small</div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>${bl('fsHz').label}</label>
+          <input type="number" id="f-fsHz" placeholder="${bl('fsHz').placeholder}" value="${s ? s.fsHz : ''}">
+        </div>
+        <div class="form-field">
+          <label>${bl('qts').label}</label>
+          <input type="number" step="0.01" id="f-qts" placeholder="${bl('qts').placeholder}" value="${s ? s.qts : ''}">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-field">
+          <label>${bl('vas').label}</label>
+          <input type="text" id="f-vas" placeholder="${bl('vas').placeholder}" value="${s ? s.vas : ''}">
+        </div>
+        <div class="form-field">
+          <label>${bl('xmax').label}</label>
+          <input type="text" id="f-xmax" placeholder="${bl('xmax').placeholder}" value="${s ? s.xmax : ''}">
+        </div>
+      </div>
+      ${renderCustomFieldsInForm(s, 'Thiele–Small')}
+
+      ${extraFields ? `<div class="form-section-label">// Extra</div>${extraFields}` : ''}
+
+      <div class="form-section-label">// ${bl('enclosures').label}</div>
+      <div class="enclosure-chips" id="enc-chips">
+        ${ALL_ENCLOSURES.map(e => `
+          <button class="enc-chip ${selectedEnclosures.includes(e) ? 'selected' : ''}"
+            onclick="toggleEnclosure('${e}', this)">${e}</button>
+        `).join('')}
+      </div>
+
+      <div class="form-section-label">// Accent Colour</div>
+      <div class="color-row" id="color-swatches">
+        ${COLORS.map(c => `
+          <div class="color-swatch ${c === selectedColor ? 'selected' : ''}"
+            style="background:${c}"
+            onclick="selectColor('${c}', this)"
+            title="${c}"></div>
+        `).join('')}
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-cancel" onclick="closeForm()">Cancel</button>
+        <button class="btn-save" onclick="saveForm()">${s ? 'Save Changes' : 'Add Speaker'}</button>
+      </div>
+    </div>
+  `;
+}
+
+function closeForm() {
+  editingId = null;
+  activeEditId = null;
+  renderAdminTable();
+  document.getElementById('form-pane-content').innerHTML = `
+    <div class="form-empty">
+      <span class="form-empty-icon">◎</span>
+      Select a speaker to edit,<br>or click <strong style="color:var(--accent)">+ Add Speaker</strong><br>to create a new entry.
+    </div>`;
+}
+
+function toggleEnclosure(name, el) {
+  if (selectedEnclosures.includes(name)) {
+    selectedEnclosures = selectedEnclosures.filter(e => e !== name);
+    el.classList.remove('selected');
+  } else {
+    selectedEnclosures.push(name);
+    el.classList.add('selected');
+  }
+}
+
+function selectColor(hex, el) {
+  selectedColor = hex;
+  document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function saveForm() {
+  const brand    = document.getElementById('f-brand').value.trim();
+  const model    = document.getElementById('f-model').value.trim();
+  const type     = document.getElementById('f-type').value;
+  const size     = document.getElementById('f-size').value.trim();
+  const tagline  = document.getElementById('f-tagline').value.trim();
+  const imp      = document.getElementById('f-impedance').value.trim();
+  const power    = document.getElementById('f-power').value.trim();
+  const sens     = document.getElementById('f-sensitivity').value.trim();
+  const freq     = document.getElementById('f-freqRange').value.trim();
+  const fsHz     = parseFloat(document.getElementById('f-fsHz').value) || 0;
+  const qts      = parseFloat(document.getElementById('f-qts').value) || 0;
+  const vas      = document.getElementById('f-vas').value.trim();
+  const xmax     = document.getElementById('f-xmax').value.trim();
+  const weight   = document.getElementById('f-weight').value.trim();
+
+  if (!brand || !model) { showToast('Brand and Model are required!', true); return; }
+
+  const entry = {
+    id: editingId || undefined,
+    brand, model, type, size, tagline,
+    impedance: imp, power, sensitivity: sens,
+    freqRange: freq, fsHz, qts, vas, xmax, weight,
+    enclosures: selectedEnclosures.length ? selectedEnclosures : ['Sealed'],
+    color: selectedColor,
+    accent: selectedColor
+  };
+
+  // Collect custom fields
+  customFields.forEach(f => {
+    const el = document.getElementById('cf-' + f.key);
+    if (el) entry[f.key] = f.type === 'number' ? (parseFloat(el.value) || '') : el.value.trim();
+  });
+
+  try {
+    showToast('Saving…');
+    if (editingId) {
+      const updated = await updateSpeaker(entry);
+      const idx = speakers.findIndex(s => s.id === editingId);
+      if (idx !== -1) speakers[idx] = updated;
+      showToast('Speaker updated ✓');
+    } else {
+      const created = await insertSpeaker(entry);
+      speakers.push(created);
+      showToast('Speaker added ✓');
+    }
+    closeForm();
+    renderGallery(speakers);
+    updateHeroCount();
+  } catch(err) {
+    showToast('Error: ' + err.message, true);
+  }
+}
+
+// ═══════════════════════════════════════════
+// DELETE
+// ═══════════════════════════════════════════
+function openDeleteModal(id) {
+  deleteTargetId = id;
+  const s = speakers.find(x => x.id === id);
+  document.getElementById('delete-name').textContent = s ? `${s.brand} ${s.model}` : 'this speaker';
+  document.getElementById('delete-modal').classList.add('open');
+}
+
+function closeDeleteModal() {
+  deleteTargetId = null;
+  document.getElementById('delete-modal').classList.remove('open');
+}
+
+async function confirmDelete() {
+  if (!deleteTargetId) return;
+  try {
+    await deleteSpeaker(deleteTargetId);
+    speakers = speakers.filter(s => s.id !== deleteTargetId);
+    closeDeleteModal();
+    if (editingId === deleteTargetId) closeForm();
+    renderAdminTable();
+    renderGallery(speakers);
+    updateHeroCount();
+    showToast('Speaker deleted ✓');
+  } catch(err) {
+    showToast('Error: ' + err.message, true);
+  }
+  deleteTargetId = null;
+}
+
+// ═══════════════════════════════════════════
+// EXPORT / IMPORT / RESET
+// ═══════════════════════════════════════════
+function exportJSON() {
+  const blob = new Blob([JSON.stringify({ speakers, customFields }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'resonance-database.json';
+  a.click();
+  showToast('Exported ✓');
+}
+
+async function importJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      const list = Array.isArray(data) ? data : (data.speakers || []);
+      if (!list.length) throw new Error('No speakers found');
+      showToast('Importing…');
+      // Insert each speaker — let DB generate IDs
+      speakers = [];
+      for (const s of list) {
+        const { id: _ignore, ...rest } = s;
+        const created = await insertSpeaker(rest);
+        speakers.push(created);
+      }
+      // Import custom fields if present
+      if (!Array.isArray(data) && Array.isArray(data.customFields)) {
+        customFields = data.customFields;
+        await saveFields();
+      }
+      renderAdminTable();
+      renderGallery(speakers);
+      updateHeroCount();
+      showToast(`Imported ${speakers.length} speakers ✓`);
+    } catch(err) { showToast('Error: ' + err.message, true); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+async function resetToDefaults() {
+  if (!confirm('Delete ALL speakers from the database and reload the 12 defaults? This cannot be undone.')) return;
+  showToast('Resetting…');
+  try {
+    // Delete all current speakers
+    for (const s of speakers) await deleteSpeaker(s.id);
+    // Re-insert defaults
+    speakers = [];
+    for (const s of defaultSpeakers) {
+      const { id: _ignore, ...rest } = s;
+      const created = await insertSpeaker(rest);
+      speakers.push(created);
+    }
+    renderAdminTable();
+    renderGallery(speakers);
+    updateHeroCount();
+    closeForm();
+    showToast('Reset to defaults ✓');
+  } catch(err) { showToast('Error: ' + err.message, true); }
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isError ? 'var(--accent2)' : 'var(--accent)';
+  t.style.color = isError ? 'white' : 'var(--bg)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function updateHeroCount() {
+  const el = document.getElementById('count-all');
+  if (el) el.textContent = speakers.length;
+}
+
+// ═══════════════════════════════════════════
+// INIT — updated
+// ═══════════════════════════════════════════
+const defaultSpeakers = speakers.map(s => ({...s}));
+
+// ═══════════════════════════════════════════
+// LOGIN SCREEN
+// ═══════════════════════════════════════════
+function showLoginScreen() {
+  document.getElementById('app-shell').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-email').value    = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
+  document.getElementById('login-btn').textContent = 'Sign In';
+  document.getElementById('login-btn').disabled = false;
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display    = 'block';
+  // Show admin + user info + signout, hide signin link
+  if (currentUser) {
+    document.getElementById('nav-admin').style.display    = '';
+    document.getElementById('nav-user-area').style.display = '';
+    document.getElementById('nav-signout-li').style.display = '';
+    document.getElementById('nav-signin-li').style.display  = 'none';
+    document.getElementById('nav-user').textContent = currentUser.email;
+  }
+}
+
+function showAppGuest() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display    = 'block';
+  // No admin controls for guests
+  document.getElementById('nav-admin').style.display     = 'none';
+  document.getElementById('nav-user-area').style.display = 'none';
+  document.getElementById('nav-signout-li').style.display = 'none';
+  document.getElementById('nav-signin-li').style.display  = '';
+}
+
+async function enterAsGuest() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-shell').style.display    = 'block';
+  speakers         = await loadDB().catch(() => []);
+  customFields     = await loadFields().catch(() => []);
+  builtInOverrides = await loadBuiltInOverrides().catch(() => ({}));
+  renderGallery(speakers);
+  updateHeroCount();
+  showAppGuest();
+}
+
+async function handleLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn      = document.getElementById('login-btn');
+  const errEl    = document.getElementById('login-error');
+  if (!email || !password) { errEl.textContent = 'Email and password required.'; return; }
+  btn.textContent = 'Signing in…';
+  btn.disabled    = true;
+  errEl.textContent = '';
+  try {
+    await signIn(email, password);
+    await bootApp();
+    showApp();
+  } catch(err) {
+    errEl.textContent = err.message;
+    btn.textContent   = 'Sign In';
+    btn.disabled      = false;
+  }
+}
+
+// Allow Enter key on login form
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    handleLogin();
+  }
+});
+
+async function bootApp() {
+  showToast('Loading database…');
+  speakers         = await loadDB();
+  customFields     = await loadFields();
+  builtInOverrides = await loadBuiltInOverrides();
+  renderGallery(speakers);
+  updateHeroCount();
+  showToast('');
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  if (SUPABASE_URL === 'YOUR_SUPABASE_URL') {
+    // Dev mode — no config yet, show app with placeholder message
+    document.getElementById('app-shell').style.display = 'block';
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('nav-admin').style.display = 'none';
+    document.getElementById('nav-signin-li').style.display = 'none';
+    document.getElementById('gallery').innerHTML = `
+      <div class="no-results">
+        <span>⚙</span>
+        Open the HTML file and set<br>
+        <strong style="color:var(--accent)">SUPABASE_URL</strong> and
+        <strong style="color:var(--accent)">SUPABASE_ANON_KEY</strong><br>
+        at the top of the script section, then reload.
+      </div>`;
+    return;
+  }
+
+  // Show login screen initially
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-shell').style.display = 'none';
+
+  // Try to restore an existing session from sessionStorage
+  const ok = await restoreSession();
+  if (ok) {
+    await bootApp();
+    showApp();
+  }
+  // Otherwise: login screen stays shown — user clicks Sign In or Guest
+});
+
+</script>
+</div><!-- /app-shell -->
+</body>
+</html>
