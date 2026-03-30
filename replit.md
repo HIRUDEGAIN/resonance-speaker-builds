@@ -36,5 +36,12 @@ See `SETUP-GUIDE.md` for full setup instructions.
 - `custom_fields` — User-defined field definitions
 - `builtin_overrides` — Label/section customizations
 
+## 3D Model Upload (Custom Models)
+Admins can upload custom `.glb` / `.gltf` 3D model files per speaker:
+- Models are stored in Supabase Storage bucket `speaker-models` (auto-created on first upload)
+- Model URLs are saved in the speaker's `custom_data` JSON as `modelUrl`
+- In the speaker detail viewer: custom model is loaded via Three.js `GLTFLoader`; if none uploaded, the procedural model is shown by default
+- Deleting a speaker also removes its model file from storage
+
 ## Deployment
 Configured as a static site deployment. The `index.html` and assets are served directly.
