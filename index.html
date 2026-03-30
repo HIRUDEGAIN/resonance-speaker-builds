@@ -1734,7 +1734,7 @@ let speakers = [
     fsHz: 32,
     qts: 0.34,
     vas: "18.5L",
-    row_row_xmax: "7mm",
+    row_xmax: "7mm",
     weight: "1.2kg",
     enclosures: ["Sealed", "Bass Reflex", "Transmission Line"],
     tagline: "Reference midwoofer with titanium-coated cone and symmetrical drive motor.",
@@ -1754,7 +1754,7 @@ let speakers = [
     fsHz: 16,
     qts: 0.28,
     vas: "240L",
-    row_xmax: "31mm",
+    xmax: "31mm",
     weight: "11.8kg",
     enclosures: ["Sealed", "Ported", "Isobaric", "Bandpass 4th Order"],
     tagline: "High-excursion subwoofer engineered for infrasonic bass reproduction.",
@@ -1774,7 +1774,7 @@ let speakers = [
     fsHz: 550,
     qts: 0.62,
     vas: "0.06L",
-    row_xmax: "2mm",
+    xmax: "2mm",
     weight: "0.35kg",
     enclosures: ["Waveguide", "Open Baffle"],
     tagline: "Fabric dome tweeter with ferrofluid cooling and extended ultra-HF response.",
@@ -1794,7 +1794,7 @@ let speakers = [
     fsHz: 85,
     qts: 0.38,
     vas: "26L",
-    row_xmax: "5mm",
+    xmax: "5mm",
     weight: "2.8kg",
     enclosures: ["Horn", "Sealed", "Midrange Chamber"],
     tagline: "Professional midrange with neodymium motor for high-SPL applications.",
@@ -1814,7 +1814,7 @@ let speakers = [
     fsHz: 55,
     qts: 0.32,
     vas: "65L",
-    row_xmax: "8mm",
+    xmax: "8mm",
     weight: "6.2kg",
     enclosures: ["Bass Reflex", "Horn Loaded"],
     tagline: "Integrated coaxial driver with neodymium compression driver at center phase plug.",
@@ -1834,7 +1834,7 @@ let speakers = [
     fsHz: 350,
     qts: 0.80,
     vas: "0.02L",
-    row_xmax: "1.5mm",
+    xmax: "1.5mm",
     weight: "0.82kg",
     enclosures: ["Horn Only"],
     tagline: "Dual-diaphragm annular compression driver for ultra-high output horn systems.",
@@ -1854,7 +1854,7 @@ let speakers = [
     fsHz: 40,
     qts: 0.33,
     vas: "180L",
-    row_xmax: "9mm",
+    xmax: "9mm",
     weight: "7.4kg",
     enclosures: ["Bass Reflex", "Horn", "Sealed"],
     tagline: "High-power professional woofer with extended frequency range and robust motor.",
@@ -1874,7 +1874,7 @@ let speakers = [
     fsHz: 22,
     qts: 0.22,
     vas: "125L",
-    row_xmax: "15mm",
+    xmax: "15mm",
     weight: "5.8kg",
     enclosures: ["Sealed", "Ported", "Bandpass 6th Order"],
     tagline: "Long-throw subwoofer with vented aluminum pole piece for maximum excursion.",
@@ -1894,7 +1894,7 @@ let speakers = [
     fsHz: 160,
     qts: 0.70,
     vas: "3.4L",
-    row_xmax: "3.5mm",
+    xmax: "3.5mm",
     weight: "0.65kg",
     enclosures: ["Sealed", "Acoustic Suspension"],
     tagline: "Cone midrange with treated paper cone and copper demodulation ring.",
@@ -1914,7 +1914,7 @@ let speakers = [
     fsHz: 72,
     qts: 0.28,
     vas: "58L",
-    row_xmax: "12mm",
+    xmax: "12mm",
     weight: "4.9kg",
     enclosures: ["Bandpass", "Ported", "Manifold Load"],
     tagline: "Line array element driver with controlled directivity and neodymium magnet system.",
@@ -1934,7 +1934,7 @@ let speakers = [
     fsHz: 35,
     qts: 0.35,
     vas: "22L",
-    row_xmax: "8mm",
+    xmax: "8mm",
     weight: "1.9kg",
     enclosures: ["Bass Reflex", "Sealed", "TQWT"],
     tagline: "Audiophile-grade midwoofer with black aluminum cone and dual-layer voice coil.",
@@ -1954,7 +1954,7 @@ let speakers = [
     fsHz: 14,
     qts: 0.20,
     vas: "610L",
-    row_xmax: "42mm",
+    xmax: "42mm",
     weight: "28kg",
     enclosures: ["Ported", "Horn Loaded", "Tapped Horn"],
     tagline: "Extreme SPL 21-inch subwoofer for large-venue professional sound reinforcement.",
@@ -2167,8 +2167,8 @@ function renderDetailContent(s) {
           <span class="spec-val">${s.vas}</span>
         </div>
         <div class="spec-item">
-          <span class="spec-key">Max Excursion (row_xmax)</span>
-          <span class="spec-val highlight">${s.row_xmax}</span>
+          <span class="spec-key">Max Excursion (xmax)</span>
+          <span class="spec-val highlight">${s.xmax}</span>
         </div>
         <div class="spec-item">
           <span class="spec-key">Impedance</span>
@@ -2599,7 +2599,7 @@ function dbToApp(r) {
     fsHz:        r.fs_hz       || 0,
     qts:         r.qts         || 0,
     vas:         r.vas         || '',
-    row_xmax:    r.row_xmax        || '',
+    xmax:    r.xmax        || '',
     weight:      r.weight      || '',
     enclosures:  r.enclosures  || [],
     color:       r.color       || '#e8ff47',
@@ -2611,7 +2611,7 @@ function dbToApp(r) {
 // camelCase app object → snake_case DB row
 function appToDB(s) {
   const builtInKeys = new Set(['id','brand','model','type','size','tagline','impedance',
-    'power','sensitivity','freqRange','fsHz','qts','vas','row_xmax','weight','enclosures','color','accent']);
+    'power','sensitivity','freqRange','fsHz','qts','vas','xmax','weight','enclosures','color','accent']);
   const customData = {};
   Object.keys(s).forEach(k => { if (!builtInKeys.has(k)) customData[k] = s[k]; });
   return {
@@ -2628,7 +2628,7 @@ function appToDB(s) {
     fs_hz:       s.fsHz,
     qts:         s.qts,
     vas:         s.vas,
-    row_xmax:    s.row_xmax,
+    xmax:    s.xmax,
     weight:      s.weight,
     enclosures:  s.enclosures,
     color:       s.color,
@@ -2783,7 +2783,7 @@ const BUILT_IN_FIELDS = [
   { key:'fsHz',        label:'Fs (Hz)',          section:'Thiele–Small', type:'number',   placeholder:'e.g. 32' },
   { key:'qts',         label:'Qts',             section:'Thiele–Small', type:'number',   placeholder:'e.g. 0.34' },
   { key:'vas',         label:'Vas',             section:'Thiele–Small', type:'text',     placeholder:'e.g. 18.5L' },
-  { key:'row_xmax',        label:'row_xmax',            section:'Thiele–Small', type:'text',     placeholder:'e.g. 7mm' },
+  { key:'xmax',        label:'xmax',            section:'Thiele–Small', type:'text',     placeholder:'e.g. 7mm' },
   { key:'enclosures',  label:'Enclosure Types', section:'Identity',     type:'chips',    placeholder:'' },
   { key:'color',       label:'Accent Colour',   section:'Identity',     type:'color',    placeholder:'' },
 ];
@@ -3257,8 +3257,8 @@ function openForm(id) {
           <input type="text" id="f-vas" placeholder="${bl('vas').placeholder}" value="${s ? s.vas : ''}">
         </div>
         <div class="form-field">
-          <label>${bl('row_xmax').label}</label>
-          <input type="text" id="f-row_xmax" placeholder="${bl('row_xmax').placeholder}" value="${s ? s.row_xmax : ''}">
+          <label>${bl('xmax').label}</label>
+          <input type="text" id="f-xmax" placeholder="${bl('xmax').placeholder}" value="${s ? s.xmax : ''}">
         </div>
       </div>
       ${renderCustomFieldsInForm(s, 'Thiele–Small')}
@@ -3331,7 +3331,7 @@ async function saveForm() {
   const fsHz     = parseFloat(document.getElementById('f-fsHz').value) || 0;
   const qts      = parseFloat(document.getElementById('f-qts').value) || 0;
   const vas      = document.getElementById('f-vas').value.trim();
-  const row_xmax     = document.getElementById('f-row_xmax').value.trim();
+  const xmax     = document.getElementById('f-xmax').value.trim();
   const weight   = document.getElementById('f-weight').value.trim();
 
   if (!brand || !model) { showToast('Brand and Model are required!', true); return; }
@@ -3340,7 +3340,7 @@ async function saveForm() {
     id: editingId || undefined,
     brand, model, type, size, tagline,
     impedance: imp, power, sensitivity: sens,
-    freqRange: freq, fsHz, qts, vas, row_xmax, weight,
+    freqRange: freq, fsHz, qts, vas, xmax, weight,
     enclosures: selectedEnclosures.length ? selectedEnclosures : ['Sealed'],
     color: selectedColor,
     accent: selectedColor
